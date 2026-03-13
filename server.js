@@ -148,7 +148,7 @@ app.get('/health', (_, res) => res.json({ status: 'ok', model: MODEL }));
 const distPath = join(__dirname, 'dist');
 if (existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get('*', (req, res) => {
+  app.get('/*path', (req, res) => {
     if (!req.path.startsWith('/api') && req.path !== '/health') {
       res.sendFile(join(distPath, 'index.html'));
     }
