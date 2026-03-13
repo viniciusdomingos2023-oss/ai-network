@@ -4,203 +4,169 @@ import { AI_AGENTS, POST_POOLS, AGENT_CONTENT_MAP } from '../data/mockData';
 const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
 let postIdCounter = 1000;
 
-const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick   = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-// ── Fallback: create post from mock data if API is unavailable ──────────────
+// ── Fallback: post from mock pool ─────────────────────────────────────────
 const createMockPost = (agentOverride = null) => {
-  const agent = agentOverride ?? getRandomItem(AI_AGENTS);
-  const contentKeys = AGENT_CONTENT_MAP[agent.id];
-  const poolKey = getRandomItem(contentKeys);
-  const pool = POST_POOLS[poolKey];
-  const template = getRandomItem(pool);
+  const agent    = agentOverride ?? pick(AI_AGENTS);
+  const poolKey  = pick(AGENT_CONTENT_MAP[agent.id]);
+  const template = pick(POST_POOLS[poolKey]);
 
   return {
     id: String(++postIdCounter),
     agent,
     text: template.text,
-    hashtags: template.hashtags,
-    likes: getRandomInt(100, 3000),
-    reposts: getRandomInt(20, 800),
-    replies: getRandomInt(5, 200),
-    views: getRandomInt(1000, 80000),
+    hashtags: template.hashtags ?? [],
+    likes:    randInt(200, 4000),
+    reposts:  randInt(30,  800),
+    replies:  randInt(5,   150),
+    views:    randInt(800, 40000),
     timestamp: new Date().toISOString(),
-    liked: false,
-    reposted: false,
-    bookmarked: false,
+    liked: false, reposted: false, bookmarked: false,
     isAI: false,
   };
 };
 
-// ── Build a post object from an API response ─────────────────────────────────
-const buildPostFromAPI = (agentId, text, hashtags) => {
-  const agent = AI_AGENTS.find((a) => a.id === agentId) ?? getRandomItem(AI_AGENTS);
+// ── Build post from API response ──────────────────────────────────────────
+const buildPost = (agentId, text, hashtags) => {
+  const agent = AI_AGENTS.find((a) => a.id === agentId) ?? pick(AI_AGENTS);
   return {
     id: String(++postIdCounter),
     agent,
     text,
-    hashtags,
-    likes: getRandomInt(10, 500),
-    reposts: getRandomInt(2, 100),
-    replies: getRandomInt(1, 60),
-    views: getRandomInt(200, 8000),
+    hashtags: hashtags ?? [],
+    likes:    randInt(50,  600),
+    reposts:  randInt(5,   120),
+    replies:  randInt(2,   60),
+    views:    randInt(300, 9000),
     timestamp: new Date().toISOString(),
-    liked: false,
-    reposted: false,
-    bookmarked: false,
-    isAI: true, // badge "IA real"
+    liked: false, reposted: false, bookmarked: false,
+    isAI: true,
   };
 };
 
-// ── Fetch a single post from the backend ────────────────────────────────────
-const fetchPost = async (agentId) => {
-  const res = await fetch(`${API_BASE}/api/generate-post`, {
+// ── API helpers ───────────────────────────────────────────────────────────
+const fetchPost = (agentId) =>
+  fetch(`${API_BASE}/api/generate-post`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ agentId }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-};
+  }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
 
-// ── Fetch initial batch (all agents in parallel) ─────────────────────────────
-const fetchBatch = async (agentIds) => {
-  const res = await fetch(`${API_BASE}/api/generate-batch`, {
+const fetchBatch = (agentIds) =>
+  fetch(`${API_BASE}/api/generate-batch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ agentIds }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-};
+  }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
 
-// ── Generate mock initial feed while API loads ───────────────────────────────
-const generateMockFeed = () =>
-  AI_AGENTS.map((agent, i) => {
-    const post = createMockPost(agent);
-    post.timestamp = new Date(Date.now() - (i + 1) * 4 * 60000).toISOString();
-    return post;
+// ── Seed feed with mock posts (instant render) ────────────────────────────
+const seedFeed = () =>
+  AI_AGENTS.flatMap((agent, i) => {
+    const poolKey  = pick(AGENT_CONTENT_MAP[agent.id]);
+    const template = pick(POST_POOLS[poolKey]);
+    return {
+      id: String(++postIdCounter),
+      agent,
+      text: template.text,
+      hashtags: template.hashtags ?? [],
+      likes:    template.baselikes  ?? randInt(200, 4000),
+      reposts:  template.basereposts ?? randInt(30, 800),
+      replies:  randInt(5, 150),
+      views:    randInt(1500, 60000),
+      timestamp: new Date(Date.now() - (i + 1) * 5 * 60000).toISOString(),
+      liked: false, reposted: false, bookmarked: false,
+      isAI: false,
+    };
   });
 
+// ── Hook ──────────────────────────────────────────────────────────────────
 export const useAISimulation = () => {
-  const [posts, setPosts] = useState(generateMockFeed);
+  const [posts, setPosts]       = useState(seedFeed);
   const [apiReady, setApiReady] = useState(false);
-  const intervalRef = useRef(null);
-  const agentIndexRef = useRef(0);
+  const intervalRef             = useRef(null);
+  const agentIdxRef             = useRef(0);
 
-  // ── On mount: load initial AI-generated batch ──────────────────────────────
+  // Initial batch load
   useEffect(() => {
-    const allIds = AI_AGENTS.map((a) => a.id);
-
-    fetchBatch(allIds)
-      .then(({ posts: batchPosts }) => {
-        if (!batchPosts?.length) return;
-
-        const aiPosts = batchPosts
-          .map(({ agentId, text, hashtags }) => buildPostFromAPI(agentId, text, hashtags))
-          .reverse(); // oldest first so newest appears on top after prepend
-
-        setPosts((prev) => {
-          // Prepend AI posts, keep mocks as backup at bottom
-          const combined = [...aiPosts, ...prev].slice(0, 60);
-          return combined;
-        });
+    fetchBatch(AI_AGENTS.map((a) => a.id))
+      .then(({ posts: batch }) => {
+        if (!batch?.length) return;
+        const aiPosts = batch
+          .map(({ agentId, text, hashtags }) => buildPost(agentId, text, hashtags))
+          .reverse();
+        setPosts((prev) => [...aiPosts, ...prev].slice(0, 60));
         setApiReady(true);
-        console.log(`[AI Network] ${batchPosts.length} posts gerados pela IA ✓`);
+        console.log(`[convo.ia] ${batch.length} posts carregados ✓`);
       })
-      .catch((err) => {
-        console.warn('[AI Network] API indisponível, usando mock:', err.message);
-      });
+      .catch((e) => console.warn('[convo.ia] usando mock:', e.message));
   }, []);
 
-  // ── Periodic: generate one new AI post every 25s ──────────────────────────
+  // Periodic post every 45s
   useEffect(() => {
     intervalRef.current = setInterval(async () => {
-      // Cycle through agents in order so all get coverage
-      const agent = AI_AGENTS[agentIndexRef.current % AI_AGENTS.length];
-      agentIndexRef.current++;
-
+      const agent = AI_AGENTS[agentIdxRef.current % AI_AGENTS.length];
+      agentIdxRef.current++;
       try {
         const { text, hashtags } = await fetchPost(agent.id);
-        const newPost = buildPostFromAPI(agent.id, text, hashtags);
-        setPosts((prev) => [newPost, ...prev].slice(0, 60));
+        setPosts((prev) => [buildPost(agent.id, text, hashtags), ...prev].slice(0, 60));
       } catch {
-        // Fallback to mock if API fails
-        const fallback = createMockPost(agent);
-        setPosts((prev) => [fallback, ...prev].slice(0, 60));
+        setPosts((prev) => [createMockPost(agent), ...prev].slice(0, 60));
       }
-    }, 50000);
-
+    }, 45000);
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  // ── Organic engagement: likes/views grow over time ────────────────────────
+  // Organic engagement every 4s
   useEffect(() => {
     const ticker = setInterval(() => {
       setPosts((prev) =>
-        prev.map((post) => {
-          if (Math.random() < 0.12) {
+        prev.map((p) => {
+          if (Math.random() < 0.1) {
             return {
-              ...post,
-              likes: post.likes + getRandomInt(1, 6),
-              reposts: Math.random() < 0.35 ? post.reposts + 1 : post.reposts,
-              views: post.views + getRandomInt(8, 60),
+              ...p,
+              likes:   p.likes + randInt(1, 8),
+              reposts: Math.random() < 0.3 ? p.reposts + 1 : p.reposts,
+              views:   p.views + randInt(10, 80),
             };
           }
-          return post;
+          return p;
         })
       );
-    }, 3000);
+    }, 4000);
     return () => clearInterval(ticker);
   }, []);
 
-  const toggleLike = useCallback((postId) => {
+  const toggleLike = useCallback((id) => {
     setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
-          : p
-      )
+      prev.map((p) => p.id === id
+        ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+        : p)
     );
   }, []);
 
-  const toggleRepost = useCallback((postId) => {
+  const toggleRepost = useCallback((id) => {
     setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? { ...p, reposted: !p.reposted, reposts: p.reposted ? p.reposts - 1 : p.reposts + 1 }
-          : p
-      )
+      prev.map((p) => p.id === id
+        ? { ...p, reposted: !p.reposted, reposts: p.reposted ? p.reposts - 1 : p.reposts + 1 }
+        : p)
     );
   }, []);
 
-  const toggleBookmark = useCallback((postId) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p))
-    );
+  const toggleBookmark = useCallback((id) => {
+    setPosts((prev) => prev.map((p) => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
   }, []);
 
   const addUserPost = useCallback((text) => {
     const userPost = {
       id: String(++postIdCounter),
-      agent: {
-        id: 'user',
-        name: 'Observer 79',
-        handle: '@Observer79',
-        specialty: 'Human',
-        color: '#b57bff',
-        verified: false,
-      },
+      agent: { id: 'user', name: 'humano', handle: '@voce', specialty: 'Humano', color: '#888888', verified: false },
       text,
       hashtags: [],
-      likes: 0,
-      reposts: 0,
-      replies: 0,
-      views: 1,
+      likes: 0, reposts: 0, replies: 0, views: 1,
       timestamp: new Date().toISOString(),
-      liked: false,
-      reposted: false,
-      bookmarked: false,
+      liked: false, reposted: false, bookmarked: false,
       isAI: false,
     };
     setPosts((prev) => [userPost, ...prev]);

@@ -1,81 +1,84 @@
-import React, { useState } from 'react';
-import { Search, Filter } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search } from 'lucide-react';
 import { useAISimulation } from '../hooks/useAISimulation';
 import { Tweet } from '../components/Feed/FeedComponents';
 import { AI_AGENTS } from '../data/mockData';
 import './Pages.css';
 
-const FILTERS = ['Todos', 'Marketing', 'Vendas', 'IA News', 'Growth', 'Analytics'];
-
-const specialtyMap = {
-  'Marketing': ['Marketing Strategy', 'Content Marketing', 'CRO & UX'],
-  'Vendas': ['Sales & Revenue'],
-  'IA News': ['AI Industry News'],
-  'Growth': ['Growth Marketing'],
-  'Analytics': ['Analytics & Data'],
-};
+const FILTERS = [
+  { label: 'tudo',      specialty: null },
+  { label: 'AI news',   specialty: 'AI News & Drama' },
+  { label: 'startups',  specialty: 'Startups & VC' },
+  { label: 'marketing', specialty: 'Marketing & Branding' },
+  { label: 'tech',      specialty: 'Tech & Dev' },
+  { label: 'futuro',    specialty: 'Futuro & Sociedade' },
+  { label: 'hot takes', specialty: 'Hot Takes & Negócios' },
+  { label: 'dados',     specialty: 'Dados & Analytics' },
+];
 
 const Explore = () => {
-  const { posts, toggleLike, toggleRepost, toggleBookmark } = useAISimulation(8000);
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('Todos');
+  const { posts, toggleLike, toggleRepost, toggleBookmark } = useAISimulation();
+  const [search,  setSearch]  = useState('');
+  const [filter,  setFilter]  = useState(null);
 
-  const filtered = posts.filter((post) => {
-    const matchesSearch =
-      post.text.toLowerCase().includes(search.toLowerCase()) ||
-      post.agent.name.toLowerCase().includes(search.toLowerCase()) ||
-      post.hashtags.some((h) => h.toLowerCase().includes(search.toLowerCase()));
-
-    const matchesFilter =
-      activeFilter === 'Todos' ||
-      (specialtyMap[activeFilter] || []).includes(post.agent.specialty);
-
-    return matchesSearch && matchesFilter;
-  });
+  const filtered = useMemo(() => {
+    let result = posts;
+    if (filter) {
+      const ids = AI_AGENTS.filter((a) => a.specialty === filter).map((a) => a.id);
+      result = result.filter((p) => ids.includes(p.agent.id));
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((p) =>
+        p.text.toLowerCase().includes(q) ||
+        p.agent.name.toLowerCase().includes(q) ||
+        p.agent.handle.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [posts, filter, search]);
 
   return (
-    <div className="page-container" style={{ padding: '0', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-        <h2 className="brand-font" style={{ fontSize: '1.2rem', marginBottom: '12px', color: '#f0f0ff' }}>
-          Explorar
-        </h2>
-
-        <div className="search-bar glass-panel" style={{ marginBottom: '12px' }}>
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Buscar posts, agentes, hashtags..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="topic-filters">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              className={`topic-btn ${activeFilter === f ? 'active' : ''}`}
-              onClick={() => setActiveFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+    <div className="explore-page">
+      {/* Search */}
+      <div className="explore-search-wrap">
+        <Search size={16} className="explore-search-icon" />
+        <input
+          className="explore-search"
+          type="text"
+          placeholder="buscar posts, IAs, tópicos…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {filtered.length > 0 ? (
-          filtered.map((post) => (
-            <Tweet
-              key={post.id}
-              post={post}
-              onLike={toggleLike}
-              onRepost={toggleRepost}
-              onBookmark={toggleBookmark}
-            />
-          ))
+      {/* Filters */}
+      <div className="explore-filters">
+        {FILTERS.map((f) => (
+          <button
+            key={f.label}
+            className={`filter-chip ${filter === f.specialty ? 'active' : ''}`}
+            onClick={() => setFilter(f.specialty === filter ? null : f.specialty)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Results */}
+      <div className="explore-count">
+        {filtered.length} posts
+      </div>
+
+      <div className="tweet-list">
+        {filtered.length === 0 ? (
+          <p style={{ padding: '2rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            nenhum post encontrado
+          </p>
         ) : (
-          <div className="empty-state">Nenhum post encontrado para essa busca.</div>
+          filtered.map((p) => (
+            <Tweet key={p.id} post={p} onLike={toggleLike} onRepost={toggleRepost} onBookmark={toggleBookmark} />
+          ))
         )}
       </div>
     </div>

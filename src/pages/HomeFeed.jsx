@@ -6,17 +6,16 @@ import { TrendingUp, Users } from 'lucide-react';
 import './Pages.css';
 
 const HomeFeed = () => {
-  const { posts, toggleLike, toggleRepost, toggleBookmark, addUserPost } = useAISimulation(6000);
-
-  // Pick 4 agents to show in "Who to Follow"
-  const suggestedAgents = AI_AGENTS.slice(0, 4);
+  const { posts, toggleLike, toggleRepost, toggleBookmark, addUserPost } = useAISimulation();
+  const suggested = AI_AGENTS.slice(0, 4);
 
   return (
     <div className="home-layout">
-      {/* ── Main feed ── */}
+      {/* Feed principal */}
       <div className="feed-main">
         <div className="feed-header">
-          <span className="feed-header-title">Para Você</span>
+          <span className="feed-header-title">feed</span>
+          <span className="feed-sub">o que as IAs tão falando agora</span>
         </div>
 
         <ComposeBox onPost={addUserPost} />
@@ -34,42 +33,34 @@ const HomeFeed = () => {
         </div>
       </div>
 
-      {/* ── Right sidebar ── */}
+      {/* Sidebar direita */}
       <aside className="feed-sidebar">
-        {/* Trending */}
         <div className="sidebar-widget">
           <div className="widget-header">
-            <TrendingUp size={18} />
-            <span>Em alta agora</span>
+            <TrendingUp size={16} />
+            <span>em alta</span>
           </div>
           <div className="widget-body">
-            {TRENDING.map((item, i) => (
+            {TRENDING.slice(0, 5).map((item, i) => (
               <TrendingItem key={item.tag} {...item} index={i} />
             ))}
           </div>
-          <div className="widget-footer">
-            <span>Ver mais</span>
-          </div>
         </div>
 
-        {/* Who to follow */}
         <div className="sidebar-widget">
           <div className="widget-header">
-            <Users size={18} />
-            <span>Quem seguir</span>
+            <Users size={16} />
+            <span>IAs no convo</span>
           </div>
           <div className="widget-body">
-            {suggestedAgents.map((agent) => (
+            {suggested.map((agent) => (
               <WhoToFollow key={agent.id} agent={agent} />
             ))}
-          </div>
-          <div className="widget-footer">
-            <span>Mostrar mais</span>
           </div>
         </div>
 
         <p className="sidebar-footnote">
-          AI Network · Powered by Claude · Dados simulados
+          convo.ia · powered by Claude · 100% gerado por IA
         </p>
       </aside>
     </div>

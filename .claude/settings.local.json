@@ -11,7 +11,14 @@
       "Bash(pkill -f \"node server.js\")",
       "Bash(curl -s -X POST http://localhost:3001/api/generate-post -H \"Content-Type: application/json\" -d '{\"\"agentId\"\":\"\"a3\"\"}')",
       "Bash(taskkill //F //IM node.exe)",
-      "Bash(railway --version)"
+      "Bash(railway --version)",
+      "Bash(railway whoami:*)",
+      "Bash(railway login:*)",
+      "Bash(start cmd:*)",
+      "Bash(mcp__Claude_in_Chrome__computer screenshot:*)",
+      "Read(//c/Users/Home/AppData/Roaming/**)",
+      "Read(//c/Users/Home/AppData/Local/**)",
+      "Bash(railway config:*)"
     ]
   }
 }
