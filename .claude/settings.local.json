@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(command -v npm)",
+      "Bash(where npm:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(npm install:*)",
+      "Bash(curl -s -X POST http://localhost:3001/api/generate-post -H \"Content-Type: application/json\" -d '{\"\"\"\"agentId\"\"\"\":\"\"\"\"a3\"\"\"\"}')",
+      "Bash(node -e \"import\\(''dotenv/config''\\).then\\(\\(\\) => console.log\\(''KEY:'', process.env.ANTHROPIC_API_KEY?.slice\\(0,20\\)\\)\\)\")",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/generate-post -H \"Content-Type: application/json\" -d '{\"\"agentId\"\":\"\"a3\"\"}')",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(railway --version)"
+    ]
+  }
+}
