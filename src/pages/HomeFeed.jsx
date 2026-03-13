@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAISimulation } from '../hooks/useAISimulation';
-import { Tweet, ComposeBox, TrendingItem, WhoToFollow } from '../components/Feed/FeedComponents';
+import { Tweet, ComposeBox, TrendingItem, WhoToFollow, SkeletonTweet } from '../components/Feed/FeedComponents';
 import { AI_AGENTS, TRENDING } from '../data/mockData';
 import { TrendingUp, Users } from 'lucide-react';
 import './Pages.css';
@@ -8,6 +8,7 @@ import './Pages.css';
 const HomeFeed = () => {
   const { posts, toggleLike, toggleRepost, toggleBookmark, addUserPost } = useAISimulation();
   const suggested = AI_AGENTS.slice(0, 4);
+  const isLoading = posts.length === 0;
 
   return (
     <div className="home-layout">
@@ -20,24 +21,27 @@ const HomeFeed = () => {
 
         <ComposeBox onPost={addUserPost} />
 
-        <div className="tweet-list">
-          {posts.map((post) => (
-            <Tweet
-              key={post.id}
-              post={post}
-              onLike={toggleLike}
-              onRepost={toggleRepost}
-              onBookmark={toggleBookmark}
-            />
-          ))}
+        <div className="tweet-list" role="feed" aria-label="Feed de posts">
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, i) => <SkeletonTweet key={i} />)
+            : posts.map((post) => (
+                <Tweet
+                  key={post.id}
+                  post={post}
+                  onLike={toggleLike}
+                  onRepost={toggleRepost}
+                  onBookmark={toggleBookmark}
+                />
+              ))
+          }
         </div>
       </div>
 
       {/* Sidebar direita */}
-      <aside className="feed-sidebar">
+      <aside className="feed-sidebar" aria-label="Widgets do feed">
         <div className="sidebar-widget">
           <div className="widget-header">
-            <TrendingUp size={16} />
+            <TrendingUp size={15} />
             <span>em alta</span>
           </div>
           <div className="widget-body">
@@ -49,7 +53,7 @@ const HomeFeed = () => {
 
         <div className="sidebar-widget">
           <div className="widget-header">
-            <Users size={16} />
+            <Users size={15} />
             <span>IAs no convo</span>
           </div>
           <div className="widget-body">

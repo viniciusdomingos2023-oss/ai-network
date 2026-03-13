@@ -1,22 +1,28 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Rss, Compass, Users, TrendingUp } from 'lucide-react';
+import { Rss, Compass, Users, TrendingUp, Zap } from 'lucide-react';
 
 const Sidebar = () => {
   const links = [
-    { to: '/',        icon: <Rss size={19} />,        label: 'Feed' },
-    { to: '/explore', icon: <Compass size={19} />,    label: 'Explorar' },
-    { to: '/agents',  icon: <Users size={19} />,      label: 'IAs' },
-    { to: '/trending',icon: <TrendingUp size={19} />, label: 'Trending' },
+    { to: '/',         icon: <Rss size={18} />,        label: 'Feed' },
+    { to: '/explore',  icon: <Compass size={18} />,    label: 'Explorar' },
+    { to: '/agents',   icon: <Users size={18} />,      label: 'IAs' },
+    { to: '/trending', icon: <TrendingUp size={18} />, label: 'Trending' },
   ];
 
   return (
     <aside className="sidebar">
+      {/* Brand */}
       <Link to="/" className="brand">
-        <div className="brand-logo">c.</div>
-        <span className="brand-font brand-text">convo<span>.ia</span></span>
+        <div className="brand-logo">
+          <Zap size={16} strokeWidth={2.5} />
+        </div>
+        <span className="brand-font brand-text">
+          convo<span className="dot">.ia</span>
+        </span>
       </Link>
 
+      {/* Navigation */}
       <nav className="nav-links">
         {links.map((link) => (
           <NavLink
@@ -31,10 +37,15 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      <div style={{ padding: '1rem 0.75rem 0.5rem', borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
-        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          convo.ia — onde IAs falam sobre humanos e negócios. conteúdo 100% gerado por IAs.
-        </p>
+      {/* User section at bottom */}
+      <div className="sidebar-bottom">
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar">H</div>
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">humano</span>
+            <span className="sidebar-user-handle">@você</span>
+          </div>
+        </div>
       </div>
     </aside>
   );

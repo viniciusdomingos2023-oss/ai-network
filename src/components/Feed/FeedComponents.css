@@ -1,4 +1,8 @@
-/* ── Tweet Card ────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEED COMPONENTS — convo.ia Premium Dark UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tweet / Convo Card ─────────────────────────────────────────────────────── */
 .tweet {
   display: flex;
   gap: 12px;
@@ -6,42 +10,128 @@
   border-bottom: 1px solid var(--border-color);
   transition: background var(--transition);
   cursor: default;
+  position: relative;
+  border-left: 2px solid transparent;
 }
-.tweet:hover { background: var(--bg-hover); }
+.tweet:hover {
+  background: var(--bg-hover);
+  border-left-color: rgba(0, 255, 127, 0.3);
+}
 
-/* Avatar */
+/* Avatar column */
 .tweet-avatar-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  position: relative;
 }
+
 .tweet-avatar {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--agent-color, var(--green));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: #000;
   flex-shrink: 0;
-  transition: opacity var(--transition);
+  transition: transform var(--transition), box-shadow var(--transition);
   text-decoration: none;
+  position: relative;
+  cursor: pointer;
 }
-.tweet-avatar:hover { opacity: 0.85; }
+.tweet-avatar:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 3px rgba(0, 255, 127, 0.5);
+}
+
+/* AI verified ring */
+.tweet-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.tweet-avatar-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 255, 127, 0.4);
+  pointer-events: none;
+}
 
 .tweet-thread-line {
   width: 1.5px;
   flex: 1;
-  background: var(--border-color);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 255, 127, 0.2) 0%,
+    rgba(0, 255, 127, 0.05) 100%
+  );
   margin-top: 6px;
   min-height: 20px;
+  border-radius: 2px;
 }
 
-/* Content */
+/* Avatar hover profile card */
+.avatar-hover-card {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  z-index: 100;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  width: 220px;
+  box-shadow: var(--shadow-float);
+  animation: fadeInUp 0.15s ease forwards;
+  pointer-events: none;
+}
+.hover-card-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--agent-color, var(--green));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #000;
+  margin-bottom: 8px;
+}
+.hover-card-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.hover-card-handle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.hover-card-bio {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hover-card-specialty {
+  font-size: 0.68rem;
+  color: var(--green-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+/* Content column */
 .tweet-content-col {
   flex: 1;
   min-width: 0;
@@ -62,11 +152,17 @@
   font-weight: 700;
   color: var(--text-primary);
   text-decoration: none;
+  transition: color var(--transition);
 }
-.tweet-name:hover { text-decoration: underline; }
-.tweet-handle, .tweet-dot, .tweet-time {
+.tweet-name:hover {
+  color: var(--green);
+  text-decoration: underline;
+}
+.tweet-handle,
+.tweet-dot,
+.tweet-time {
   color: var(--text-muted);
-  font-size: 0.83rem;
+  font-size: 0.8rem;
 }
 
 /* Body */
@@ -77,61 +173,103 @@
 }
 .tweet-text {
   font-size: 0.93rem;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
 }
+.tweet-text .mention { color: var(--green); cursor: pointer; }
+.tweet-text .mention:hover { text-decoration: underline; }
 
 .tweet-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 2px;
 }
 .tag-pill {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--green-dim);
   background: var(--green-muted);
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(0, 230, 80, 0.2);
+  border: 1px solid rgba(0, 255, 127, 0.15);
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all var(--transition);
+  font-family: 'JetBrains Mono', monospace;
 }
-.tag-pill:hover { background: rgba(0, 230, 80, 0.2); }
+.tag-pill:hover {
+  background: rgba(0, 255, 127, 0.18);
+  border-color: rgba(0, 255, 127, 0.35);
+  color: var(--green);
+}
 
-/* Actions */
+/* ── Actions ───────────────────────────────────────────────────────────────── */
 .tweet-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 2px;
-  margin-left: -6px;
+  gap: 0;
+  margin-top: 4px;
+  margin-left: -7px;
 }
+
 .tweet-action {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 8px;
+  padding: 6px 8px;
   background: transparent;
   color: var(--text-muted);
   font-size: 0.78rem;
   border-radius: var(--radius-full);
   transition: all var(--transition);
-  min-width: 40px;
+  min-width: 44px;
   font-family: inherit;
+  position: relative;
+  overflow: visible;
 }
 .tweet-action:hover { background: var(--bg-active); color: var(--text-secondary); }
+.tweet-action:active { transform: scale(0.93); }
 
-.reply-btn:hover,   .reply-btn.active   { color: var(--green); background: var(--green-muted); }
-.repost-btn:hover,  .repost-btn.active  { color: #00e6b3; background: rgba(0, 230, 179, 0.1); }
-.like-btn:hover,    .like-btn.active    { color: #ff4d6d; background: rgba(255, 77, 109, 0.1); }
-.views-btn:hover                        { color: var(--text-secondary); }
-.bookmark-btn:hover,.bookmark-btn.active{ color: #ffd700; background: rgba(255, 215, 0, 0.1); }
-.share-btn:hover,   .share-btn.flash    { color: var(--green); background: var(--green-muted); }
+/* Specific action colors */
+.reply-btn:hover,
+.reply-btn.active   { color: var(--green); background: var(--green-muted); }
+.repost-btn:hover,
+.repost-btn.active  { color: #00E5FF; background: rgba(0, 229, 255, 0.08); }
+.like-btn:hover,
+.like-btn.active    { color: #FF4D6D; background: rgba(255, 77, 109, 0.08); }
+.views-btn:hover    { color: var(--text-secondary); }
+.bookmark-btn:hover,
+.bookmark-btn.active{ color: #FFD700; background: rgba(255, 215, 0, 0.08); }
+.share-btn:hover,
+.share-btn.flash    { color: var(--green); background: var(--green-muted); }
 
-/* ── Comment Section ───────────────────────────────────────────────────────── */
+/* Repost rotation animation */
+.repost-btn.spinning svg {
+  animation: spin-full 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Like heart burst */
+.like-btn.bursting {
+  animation: scale-press 0.25s var(--transition-spring) forwards;
+}
+.like-btn.bursting svg {
+  animation: heart-burst 0.35s ease forwards;
+}
+
+/* Heart particles */
+.heart-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  font-size: 12px;
+  animation: particle-fly 0.6s ease forwards;
+  will-change: transform, opacity;
+  color: #FF4D6D;
+}
+
+/* ── Comment Section ────────────────────────────────────────────────────────── */
 .comment-section {
   margin-top: 8px;
   padding-top: 10px;
@@ -140,42 +278,49 @@
   flex-direction: column;
   gap: 10px;
 }
+
 .comment-loading {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--text-muted);
   font-size: 0.8rem;
+  padding: 4px 0;
 }
 .comment-loading .spin {
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
+  color: var(--green);
 }
+
 .comment-empty {
   font-size: 0.8rem;
   color: var(--text-muted);
   padding: 4px 0;
+  font-style: italic;
 }
 
 .comment-item {
   display: flex;
   gap: 10px;
+  padding-left: 4px;
 }
+
 .comment-avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--agent-color, var(--green));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #000;
   flex-shrink: 0;
   text-decoration: none;
-  transition: opacity var(--transition);
+  transition: transform var(--transition);
 }
-.comment-avatar:hover { opacity: 0.85; }
+.comment-avatar:hover { transform: scale(1.08); }
 
 .comment-body {
   flex: 1;
@@ -184,6 +329,7 @@
   flex-direction: column;
   gap: 3px;
 }
+
 .comment-header {
   display: flex;
   align-items: center;
@@ -196,60 +342,72 @@
   color: var(--text-primary);
   text-decoration: none;
 }
-.comment-name:hover { text-decoration: underline; }
-.comment-handle, .comment-dot, .comment-time { color: var(--text-muted); font-size: 0.75rem; }
+.comment-name:hover { text-decoration: underline; color: var(--green); }
+.comment-handle,
+.comment-dot,
+.comment-time { color: var(--text-muted); font-size: 0.74rem; }
+
 .comment-text {
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-word;
 }
+
 .comment-like {
   display: flex;
   align-items: center;
   gap: 4px;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   margin-top: 2px;
-  padding: 3px 6px;
+  padding: 3px 7px;
   border-radius: var(--radius-full);
   transition: all var(--transition);
   width: fit-content;
 }
-.comment-like:hover, .comment-like.liked {
-  color: #ff4d6d;
+.comment-like:hover,
+.comment-like.liked {
+  color: #FF4D6D;
   background: rgba(255, 77, 109, 0.08);
 }
 
-/* ── Compose Box ───────────────────────────────────────────────────────────── */
+/* ── Compose Box — Nova Convo ───────────────────────────────────────────────── */
 .compose-box {
   display: flex;
   gap: 12px;
   padding: 14px 16px 12px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
+  transition: background var(--transition);
 }
+.compose-box:focus-within {
+  background: var(--bg-card);
+}
+
 .compose-avatar {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--green-muted);
-  border: 1.5px solid var(--green);
+  border: 1.5px solid rgba(0, 255, 127, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--green);
   flex-shrink: 0;
 }
+
 .compose-right {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .compose-textarea {
   width: 100%;
   background: transparent;
@@ -257,37 +415,141 @@
   outline: none;
   color: var(--text-primary);
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.6;
   resize: none;
-  padding: 6px 0 0;
+  padding: 4px 0 0;
+  min-height: 44px;
+  transition: min-height var(--transition-slow);
+  font-family: inherit;
 }
+.compose-textarea:focus { min-height: 80px; }
 .compose-textarea::placeholder { color: var(--text-muted); }
+
 .compose-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--border-color);
-  padding-top: 8px;
+  padding-top: 9px;
+  gap: 8px;
 }
-.compose-submit-row { display: flex; align-items: center; gap: 10px; }
-.char-count { font-size: 0.8rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.char-count.near { color: #f59e0b; }
-.char-count.over { color: #ff4d6d; }
+
+.compose-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.compose-tool-btn {
+  color: var(--text-muted);
+  padding: 5px;
+  border-radius: var(--radius-full);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.compose-tool-btn:hover { color: var(--green); background: var(--green-muted); }
+
+.compose-ai-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: transparent;
+  font-family: inherit;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+.compose-ai-toggle:hover {
+  color: var(--green);
+  border-color: rgba(0, 255, 127, 0.3);
+  background: var(--green-muted);
+}
+.compose-ai-toggle.ai-on {
+  color: var(--green);
+  border-color: rgba(0, 255, 127, 0.4);
+  background: var(--green-muted);
+  box-shadow: 0 0 8px rgba(0, 255, 127, 0.1);
+}
+
+.compose-submit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Circular char counter */
+.char-counter {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.char-counter svg {
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.char-counter-track {
+  fill: none;
+  stroke: var(--border-color);
+  stroke-width: 2.5;
+}
+.char-counter-fill {
+  fill: none;
+  stroke: var(--green-dim);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.15s ease, stroke 0.15s ease;
+}
+.char-counter-fill.near { stroke: #F59E0B; }
+.char-counter-fill.over { stroke: #FF4D6D; }
+.char-counter-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.char-counter-text.near { color: #F59E0B; }
+.char-counter-text.over { color: #FF4D6D; }
+
 .post-btn {
   background: var(--green);
   color: #000;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   padding: 7px 18px;
   border-radius: var(--radius-full);
-  transition: background var(--transition), opacity var(--transition);
+  transition: all var(--transition);
   font-family: inherit;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
-.post-btn:hover:not(:disabled) { background: var(--green-bright); }
-.post-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.post-btn:hover:not(:disabled) {
+  background: var(--green-bright);
+  box-shadow: var(--shadow-green);
+  transform: translateY(-1px);
+}
+.post-btn:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: none;
+}
+.post-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 
-/* ── Trending ──────────────────────────────────────────────────────────────── */
+/* ── Trending Widget ─────────────────────────────────────────────────────────── */
 .trending-item {
   padding: 9px 14px;
   border-radius: var(--radius-sm);
@@ -298,32 +560,47 @@
   gap: 2px;
 }
 .trending-item:hover { background: var(--bg-hover); }
-.trending-meta { display: flex; align-items: center; justify-content: space-between; }
-.trending-rank { font-size: 0.72rem; color: var(--text-muted); }
+.trending-item:active { transform: scale(0.98); }
+
+.trending-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.trending-rank { font-size: 0.7rem; color: var(--text-muted); }
 .trending-hot {
-  font-size: 0.68rem;
-  color: #ff8c00;
+  font-size: 0.65rem;
+  color: #FF8C00;
   background: rgba(255, 140, 0, 0.1);
   padding: 1px 6px;
   border-radius: var(--radius-full);
   border: 1px solid rgba(255, 140, 0, 0.2);
+  font-weight: 600;
 }
-.trending-tag { font-weight: 700; font-size: 0.875rem; color: var(--text-primary); }
-.trending-count { font-size: 0.75rem; color: var(--text-muted); }
+.trending-tag {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+.trending-count {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
 
-/* ── Who to Follow ─────────────────────────────────────────────────────────── */
+/* ── Who to Follow (AI Agents widget) ──────────────────────────────────────── */
 .who-to-follow-item {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 14px;
-  border-radius: var(--radius-sm);
   transition: background var(--transition);
+  cursor: pointer;
 }
 .who-to-follow-item:hover { background: var(--bg-hover); }
+
 .wtf-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--agent-color, var(--green));
   display: flex;
@@ -331,38 +608,73 @@
   justify-content: center;
   font-weight: 700;
   color: #000;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
   text-decoration: none;
+  transition: transform var(--transition);
 }
-.wtf-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.wtf-name-row { display: flex; align-items: center; gap: 3px; }
+.wtf-avatar:hover { transform: scale(1.08); }
+
+.wtf-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.wtf-name-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
 .wtf-name {
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   color: var(--text-primary);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--transition);
 }
-.wtf-name:hover { text-decoration: underline; }
-.wtf-handle { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
-.wtf-specialty { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wtf-name:hover { color: var(--green); text-decoration: underline; }
+.wtf-handle {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.wtf-specialty {
+  font-size: 0.7rem;
+  color: var(--green-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .follow-btn {
-  background: var(--green);
-  color: #000;
-  font-weight: 700;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
   font-size: 0.78rem;
   padding: 5px 12px;
   border-radius: var(--radius-full);
+  border: 1px solid var(--border-hover);
   flex-shrink: 0;
-  transition: background var(--transition);
+  transition: all var(--transition);
   font-family: inherit;
   text-decoration: none;
   display: inline-block;
+  white-space: nowrap;
 }
-.follow-btn:hover { background: var(--green-bright); }
+.follow-btn:hover {
+  background: var(--green);
+  color: #000;
+  border-color: var(--green);
+  box-shadow: 0 0 10px rgba(0, 255, 127, 0.2);
+}
+.follow-btn:active { transform: scale(0.95); }
 
-/* ── Spin animation ────────────────────────────────────────────────────────── */
+/* ── Spin animation ─────────────────────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }

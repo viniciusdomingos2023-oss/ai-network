@@ -1,6 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Repeat2, Bookmark, Share2, BadgeCheck, BarChart2, Loader2 } from 'lucide-react';
+import {
+  Heart, MessageCircle, Repeat2, Bookmark,
+  Share2, BadgeCheck, BarChart2, Loader2, Zap, Image, Smile,
+} from 'lucide-react';
 import { AI_AGENTS } from '../../data/mockData';
 import './FeedComponents.css';
 
@@ -27,17 +30,37 @@ const renderText = (text) =>
       : part
   );
 
-// ── CommentSection ──────────────────────────────────────────────────────────
+// ── Heart particles ──────────────────────────────────────────────────────────
+const spawnHeartParticles = (x, y) => {
+  const DIRS = [
+    { tx: -24, ty: -32 }, { tx: 0,  ty: -38 }, { tx: 24, ty: -32 },
+    { tx: -30, ty: -18 }, { tx: 30, ty: -18 }, { tx: -18, ty: 10 },
+    { tx: 18,  ty: 10  },
+  ];
+  DIRS.forEach(({ tx, ty }, i) => {
+    const el = document.createElement('span');
+    el.className = 'heart-particle';
+    el.textContent = '♥';
+    el.style.left = `${x}px`;
+    el.style.top  = `${y}px`;
+    el.style.setProperty('--tx', `${tx}px`);
+    el.style.setProperty('--ty', `${ty}px`);
+    el.style.animationDelay = `${i * 30}ms`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 700 + i * 30);
+  });
+};
+
+// ── CommentSection ───────────────────────────────────────────────────────────
 const CommentSection = ({ post, visible }) => {
-  const [comments, setComments]   = useState([]);
-  const [loading, setLoading]     = useState(false);
-  const [loaded, setLoaded]       = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [loaded, setLoaded]     = useState(false);
 
   const loadComments = useCallback(async () => {
     if (loaded || loading) return;
     setLoading(true);
 
-    // Pick 2 agents who follow the poster (or random if poster is user)
     const followers = AI_AGENTS.filter(
       (a) => a.id !== post.agent.id && a.following.includes(post.agent.id)
     );
@@ -80,8 +103,7 @@ const CommentSection = ({ post, visible }) => {
     }
   }, [post, loaded, loading]);
 
-  // Trigger load when visible
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) loadComments();
   }, [visible, loadComments]);
 
@@ -112,7 +134,8 @@ const CommentSection = ({ post, visible }) => {
               <Link to={`/profile/${c.agent.handle.replace('@', '')}`} className="comment-name">
                 {c.agent.name}
               </Link>
-              {c.agent.verified && <BadgeCheck size={12} className="verified-badge-sm" />}
+              {c.agent.verified && <BadgeCheck size={11} className="verified-badge-sm" />}
+              <span className="ia-badge">IA</span>
               <span className="comment-handle">{c.agent.handle}</span>
               <span className="comment-dot">·</span>
               <span className="comment-time">{timeAgo(c.timestamp)}</span>
@@ -126,8 +149,9 @@ const CommentSection = ({ post, visible }) => {
                   : x
                 )
               )}
+              aria-label="curtir comentário"
             >
-              <Heart size={12} fill={c.liked ? 'currentColor' : 'none'} />
+              <Heart size={11} fill={c.liked ? 'currentColor' : 'none'} />
               <span>{c.likes}</span>
             </button>
           </div>
@@ -137,33 +161,90 @@ const CommentSection = ({ post, visible }) => {
   );
 };
 
-// ── Tweet (Post card) ───────────────────────────────────────────────────────
+// ── Tweet (Post card) ────────────────────────────────────────────────────────
 export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
-  const { agent, text, hashtags, likes, reposts, replies, views, timestamp, liked, reposted, bookmarked } = post;
+  const {
+    agent, text, hashtags, likes, reposts, replies, views,
+    timestamp, liked, reposted, bookmarked,
+  } = post;
+
   const [showComments, setShowComments] = useState(false);
   const [shareFlash, setShareFlash]     = useState(false);
+  const [spinning, setSpinning]         = useState(false);
+  const [bursting, setBursting]         = useState(false);
+  const [showHoverCard, setShowHoverCard] = useState(false);
+  const hoverTimerRef = useRef(null);
+  const likeButtonRef = useRef(null);
 
   const handleShare = () => {
     setShareFlash(true);
     setTimeout(() => setShareFlash(false), 600);
   };
 
-  // Extract hashtags from text if not provided
+  const handleRepost = () => {
+    if (spinning) return;
+    setSpinning(true);
+    onRepost(post.id);
+    setTimeout(() => setSpinning(false), 450);
+  };
+
+  const handleLike = (e) => {
+    onLike(post.id);
+    if (!liked) {
+      setBursting(true);
+      setTimeout(() => setBursting(false), 400);
+      const rect = likeButtonRef.current?.getBoundingClientRect();
+      if (rect) spawnHeartParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
+  };
+
+  const handleAvatarMouseEnter = () => {
+    hoverTimerRef.current = setTimeout(() => setShowHoverCard(true), 400);
+  };
+  const handleAvatarMouseLeave = () => {
+    clearTimeout(hoverTimerRef.current);
+    setShowHoverCard(false);
+  };
+
   const tags = hashtags?.length ? hashtags : (text.match(/#\w+/g) || []);
-  // Text without trailing hashtags
-  const cleanText = tags.length
-    ? text.replace(/(\s*#\w+)+\s*$/, '').trim()
-    : text;
+  const cleanText = tags.length ? text.replace(/(\s*#\w+)+\s*$/, '').trim() : text;
 
   return (
     <article className="tweet fade-in-up">
-      {/* Avatar */}
+      {/* Avatar column */}
       <div className="tweet-avatar-col">
-        <Link to={`/profile/${agent.handle.replace('@', '')}`}>
-          <div className="tweet-avatar" style={{ '--agent-color': agent.color }}>
+        <div
+          className="tweet-avatar-wrap"
+          onMouseEnter={handleAvatarMouseEnter}
+          onMouseLeave={handleAvatarMouseLeave}
+          style={{ position: 'relative' }}
+        >
+          <Link
+            to={`/profile/${agent.handle.replace('@', '')}`}
+            className="tweet-avatar"
+            style={{ '--agent-color': agent.color }}
+            aria-label={`Ver perfil de ${agent.name}`}
+          >
             {agent.name.charAt(0)}
-          </div>
-        </Link>
+          </Link>
+
+          {/* Hover profile card */}
+          {showHoverCard && (
+            <div className="avatar-hover-card">
+              <div className="hover-card-avatar" style={{ '--agent-color': agent.color }}>
+                {agent.name.charAt(0)}
+              </div>
+              <div className="hover-card-name">{agent.name}</div>
+              <div className="hover-card-handle">{agent.handle}</div>
+              {agent.bio && (
+                <div className="hover-card-bio">{agent.bio}</div>
+              )}
+              {agent.specialty && (
+                <div className="hover-card-specialty">{agent.specialty}</div>
+              )}
+            </div>
+          )}
+        </div>
         {showComments && <div className="tweet-thread-line" />}
       </div>
 
@@ -174,7 +255,8 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
           <Link to={`/profile/${agent.handle.replace('@', '')}`} className="tweet-name">
             {agent.name}
           </Link>
-          {agent.verified && <BadgeCheck size={14} className="verified-badge" />}
+          {agent.verified && <BadgeCheck size={13} className="verified-badge" />}
+          <span className="ia-badge">IA</span>
           <span className="tweet-handle">{agent.handle}</span>
           <span className="tweet-dot">·</span>
           <span className="tweet-time">{timeAgo(timestamp)}</span>
@@ -193,49 +275,59 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
         </div>
 
         {/* Actions */}
-        <div className="tweet-actions">
+        <div className="tweet-actions" role="group" aria-label="Ações do post">
           <button
             className={`tweet-action reply-btn ${showComments ? 'active' : ''}`}
             onClick={() => setShowComments(!showComments)}
             title="Ver respostas das IAs"
+            aria-label={`${replies} respostas`}
+            aria-pressed={showComments}
           >
-            <MessageCircle size={16} />
+            <MessageCircle size={15} />
             <span>{fmt(replies)}</span>
           </button>
 
           <button
-            className={`tweet-action repost-btn ${reposted ? 'active' : ''}`}
-            onClick={() => onRepost(post.id)}
+            className={`tweet-action repost-btn ${reposted ? 'active' : ''} ${spinning ? 'spinning' : ''}`}
+            onClick={handleRepost}
+            aria-label={`${reposts} reposts`}
+            aria-pressed={reposted}
           >
-            <Repeat2 size={16} />
+            <Repeat2 size={15} />
             <span>{fmt(reposts)}</span>
           </button>
 
           <button
-            className={`tweet-action like-btn ${liked ? 'active' : ''}`}
-            onClick={() => onLike(post.id)}
+            ref={likeButtonRef}
+            className={`tweet-action like-btn ${liked ? 'active' : ''} ${bursting ? 'bursting' : ''}`}
+            onClick={handleLike}
+            aria-label={`${likes} curtidas`}
+            aria-pressed={liked}
           >
-            <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
+            <Heart size={15} fill={liked ? 'currentColor' : 'none'} />
             <span>{fmt(likes)}</span>
           </button>
 
-          <button className="tweet-action views-btn">
-            <BarChart2 size={16} />
+          <button className="tweet-action views-btn" aria-label={`${views} visualizações`}>
+            <BarChart2 size={15} />
             <span>{fmt(views)}</span>
           </button>
 
           <button
             className={`tweet-action bookmark-btn ${bookmarked ? 'active' : ''}`}
             onClick={() => onBookmark(post.id)}
+            aria-label="Salvar post"
+            aria-pressed={bookmarked}
           >
-            <Bookmark size={16} fill={bookmarked ? 'currentColor' : 'none'} />
+            <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} />
           </button>
 
           <button
             className={`tweet-action share-btn ${shareFlash ? 'flash' : ''}`}
             onClick={handleShare}
+            aria-label="Compartilhar post"
           >
-            <Share2 size={16} />
+            <Share2 size={15} />
           </button>
         </div>
 
@@ -246,37 +338,94 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
   );
 };
 
-// ── ComposeBox ──────────────────────────────────────────────────────────────
+// ── Skeleton Tweet ─────────────────────────────────────────────────────────
+export const SkeletonTweet = () => (
+  <div className="skeleton-tweet" aria-hidden="true">
+    <div className="skeleton skeleton-avatar" />
+    <div className="skeleton-content">
+      <div className="skeleton skeleton-line short" />
+      <div className="skeleton skeleton-line long" />
+      <div className="skeleton skeleton-line medium" />
+      <div className="skeleton skeleton-line short" style={{ width: '30%' }} />
+    </div>
+  </div>
+);
+
+// ── ComposeBox — Nova Convo ─────────────────────────────────────────────────
 export const ComposeBox = ({ onPost }) => {
-  const [value, setValue] = useState('');
-  const maxLen = 280;
-  const remaining = maxLen - value.length;
-  const over = remaining < 0;
-  const near = remaining <= 20;
+  const [value, setValue]   = useState('');
+  const [aiOn, setAiOn]     = useState(false);
+  const maxLen   = 280;
+  const used     = value.length;
+  const remaining = maxLen - used;
+  const over     = remaining < 0;
+  const near     = remaining <= 20 && !over;
+
+  // Circular progress
+  const R = 11;
+  const CIRC = 2 * Math.PI * R;
+  const progress = Math.min(used / maxLen, 1);
+  const dashOffset = CIRC * (1 - progress);
 
   return (
-    <div className="compose-box">
-      <div className="compose-avatar">H</div>
+    <div className="compose-box" role="form" aria-label="Nova Convo">
+      <div className="compose-avatar" aria-hidden="true">H</div>
       <div className="compose-right">
         <textarea
           className="compose-textarea"
           placeholder="o que você acha do que as IAs tão falando?"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          rows={3}
+          rows={2}
+          maxLength={maxLen + 50}
+          aria-label="Escrever post"
         />
         <div className="compose-footer">
-          <div />
+          <div className="compose-tools">
+            <button className="compose-tool-btn" aria-label="Adicionar imagem" title="Imagem">
+              <Image size={16} />
+            </button>
+            <button className="compose-tool-btn" aria-label="Emoji" title="Emoji">
+              <Smile size={16} />
+            </button>
+            <button
+              className={`compose-ai-toggle ${aiOn ? 'ai-on' : ''}`}
+              onClick={() => setAiOn(!aiOn)}
+              aria-pressed={aiOn}
+              title="Pedir à IA para completar"
+            >
+              <Zap size={11} />
+              <span>IA</span>
+            </button>
+          </div>
+
           <div className="compose-submit-row">
-            {value.length > 0 && (
-              <span className={`char-count ${near ? 'near' : ''} ${over ? 'over' : ''}`}>
-                {remaining}
-              </span>
+            {used > 0 && (
+              <div className="char-counter" aria-label={`${remaining} caracteres restantes`}>
+                <svg width="28" height="28" viewBox="0 0 28 28">
+                  <circle
+                    className="char-counter-track"
+                    cx="14" cy="14" r={R}
+                  />
+                  <circle
+                    className={`char-counter-fill ${near ? 'near' : ''} ${over ? 'over' : ''}`}
+                    cx="14" cy="14" r={R}
+                    strokeDasharray={CIRC}
+                    strokeDashoffset={dashOffset}
+                  />
+                </svg>
+                {remaining <= 20 && (
+                  <span className={`char-counter-text ${near ? 'near' : ''} ${over ? 'over' : ''}`}>
+                    {remaining}
+                  </span>
+                )}
+              </div>
             )}
             <button
               className="post-btn"
               disabled={!value.trim() || over}
               onClick={() => { onPost(value.trim()); setValue(''); }}
+              aria-label="Publicar post"
             >
               postar
             </button>
@@ -287,9 +436,9 @@ export const ComposeBox = ({ onPost }) => {
   );
 };
 
-// ── TrendingItem ────────────────────────────────────────────────────────────
+// ── TrendingItem ──────────────────────────────────────────────────────────
 export const TrendingItem = ({ tag, posts, hot, index }) => (
-  <div className="trending-item">
+  <div className="trending-item" role="button" tabIndex={0}>
     <div className="trending-meta">
       <span className="trending-rank">trending #{index + 1}</span>
       {hot && <span className="trending-hot">🔥 em alta</span>}
@@ -299,10 +448,13 @@ export const TrendingItem = ({ tag, posts, hot, index }) => (
   </div>
 );
 
-// ── WhoToFollow ─────────────────────────────────────────────────────────────
+// ── WhoToFollow ──────────────────────────────────────────────────────────
 export const WhoToFollow = ({ agent }) => (
   <div className="who-to-follow-item">
-    <Link to={`/profile/${agent.handle.replace('@', '')}`}>
+    <Link
+      to={`/profile/${agent.handle.replace('@', '')}`}
+      aria-label={`Ver perfil de ${agent.name}`}
+    >
       <div className="wtf-avatar" style={{ '--agent-color': agent.color }}>
         {agent.name.charAt(0)}
       </div>
@@ -312,12 +464,18 @@ export const WhoToFollow = ({ agent }) => (
         <Link to={`/profile/${agent.handle.replace('@', '')}`} className="wtf-name">
           {agent.name}
         </Link>
-        {agent.verified && <BadgeCheck size={13} className="verified-badge-sm" />}
+        {agent.verified && <BadgeCheck size={12} className="verified-badge-sm" />}
       </div>
       <span className="wtf-handle">{agent.handle}</span>
-      <span className="wtf-specialty">{agent.specialty}</span>
+      {agent.specialty && (
+        <span className="wtf-specialty">{agent.specialty}</span>
+      )}
     </div>
-    <Link to={`/profile/${agent.handle.replace('@', '')}`} className="follow-btn">
+    <Link
+      to={`/profile/${agent.handle.replace('@', '')}`}
+      className="follow-btn"
+      aria-label={`Ver perfil de ${agent.name}`}
+    >
       ver
     </Link>
   </div>

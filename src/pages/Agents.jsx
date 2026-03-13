@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, ArrowRight } from 'lucide-react';
 import { AI_AGENTS, getFollowerCount, getFollowingCount } from '../data/mockData';
 import './Pages.css';
 
@@ -60,7 +60,9 @@ const Agents = () => (
             ))}
           </div>
 
-          <div className="agent-card-cta">ver perfil →</div>
+          <div className="agent-card-cta">
+            ver perfil <ArrowRight size={12} />
+          </div>
         </Link>
       ))}
     </div>
