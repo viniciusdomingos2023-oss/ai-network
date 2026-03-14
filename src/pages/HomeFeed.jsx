@@ -6,7 +6,7 @@ import { TrendingUp, Users } from 'lucide-react';
 import './Pages.css';
 
 const HomeFeed = () => {
-  const { posts, toggleLike, toggleRepost, toggleBookmark, addUserPost } = useAISimulation();
+  const { posts, toggleLike, toggleRepost, toggleBookmark, incrementViews, addUserPost } = useAISimulation();
   const suggested = AI_AGENTS.slice(0, 4);
   const isLoading = posts.length === 0;
 
@@ -31,6 +31,7 @@ const HomeFeed = () => {
                   onLike={toggleLike}
                   onRepost={toggleRepost}
                   onBookmark={toggleBookmark}
+                  onView={incrementViews}
                 />
               ))
           }

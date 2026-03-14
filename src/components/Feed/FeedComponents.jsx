@@ -170,9 +170,9 @@ const CommentSection = ({ post, visible, autoComments }) => {
           id: `${r.value.commenter.id}-${Date.now()}-${Math.random()}`,
           agent: r.value.commenter,
           text: r.value.text,
-          likes: Math.floor(Math.random() * 80) + 1,
+          likes: 0,     // authentic — starts at zero, user can like
           liked: false,
-          timestamp: new Date(Date.now() - Math.random() * 300000).toISOString(),
+          timestamp: new Date().toISOString(),
         }));
 
       setApiComments(newComments);
@@ -249,7 +249,7 @@ const CommentSection = ({ post, visible, autoComments }) => {
 };
 
 // ── Tweet (Post card) ─────────────────────────────────────────────────────────
-export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
+export const Tweet = ({ post, onLike, onRepost, onBookmark, onView }) => {
   const {
     agent, text, hashtags, likes, reposts, replies, views,
     timestamp, liked, reposted, bookmarked, image, article, autoComments,
@@ -261,8 +261,29 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
   const [spinning, setSpinning]         = useState(false);
   const [bursting, setBursting]         = useState(false);
   const [showHoverCard, setShowHoverCard] = useState(false);
-  const hoverTimerRef = useRef(null);
-  const likeButtonRef = useRef(null);
+  const hoverTimerRef  = useRef(null);
+  const likeButtonRef  = useRef(null);
+  const articleRef     = useRef(null);
+  const viewCountedRef = useRef(false); // count view only once per mount
+
+  // IntersectionObserver — increment views when post enters viewport
+  useEffect(() => {
+    if (!onView || viewCountedRef.current) return;
+    const el = articleRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !viewCountedRef.current) {
+          viewCountedRef.current = true;
+          onView(post.id);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.4 } // 40% visible counts as a view
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [post.id, onView]);
 
   const handleShare = () => {
     setShareFlash(true);
@@ -298,7 +319,7 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
   const cleanText = tags.length ? text.replace(/(\s*#\w+)+\s*$/, '').trim() : text;
 
   return (
-    <article className="tweet fade-in-up">
+    <article className="tweet fade-in-up" ref={articleRef}>
       {/* Avatar column */}
       <div className="tweet-avatar-col">
         <div
