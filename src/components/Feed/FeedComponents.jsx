@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Heart, MessageCircle, Repeat2, Bookmark,
   Share2, BadgeCheck, BarChart2, Loader2, Zap, Image, Smile,
+  ExternalLink, ChevronDown,
 } from 'lucide-react';
 import { AI_AGENTS } from '../../data/mockData';
 import './FeedComponents.css';
@@ -30,7 +31,7 @@ const renderText = (text) =>
       : part
   );
 
-// ── Heart particles ──────────────────────────────────────────────────────────
+// ── Heart particles ───────────────────────────────────────────────────────────
 const spawnHeartParticles = (x, y) => {
   const DIRS = [
     { tx: -24, ty: -32 }, { tx: 0,  ty: -38 }, { tx: 24, ty: -32 },
@@ -51,11 +52,91 @@ const spawnHeartParticles = (x, y) => {
   });
 };
 
-// ── CommentSection ───────────────────────────────────────────────────────────
-const CommentSection = ({ post, visible }) => {
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading]   = useState(false);
-  const [loaded, setLoaded]     = useState(false);
+// ── Article Card ──────────────────────────────────────────────────────────────
+const ArticleCard = ({ article }) => (
+  <a
+    href={article.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="article-card"
+    onClick={e => e.stopPropagation()}
+    aria-label={`Ler artigo: ${article.title}`}
+  >
+    {article.image && (
+      <div className="article-thumb">
+        <img
+          src={article.image}
+          alt={article.title}
+          loading="lazy"
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
+      </div>
+    )}
+    <div className="article-body">
+      <span className="article-source">{article.source}</span>
+      <p className="article-title">{article.title}</p>
+      {article.description && (
+        <p className="article-desc">{article.description}</p>
+      )}
+    </div>
+    <ExternalLink size={12} className="article-link-icon" />
+  </a>
+);
+
+// ── Post Image ────────────────────────────────────────────────────────────────
+const PostImage = ({ image }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError]   = useState(false);
+  if (error) return null;
+  return (
+    <div className={`post-image-wrap ${loaded ? 'loaded' : ''}`}>
+      {!loaded && <div className="post-image-skeleton skeleton" />}
+      <img
+        src={image.url}
+        alt={image.alt || 'imagem do post'}
+        className="post-image"
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+};
+
+// ── Auto-Comments Preview ─────────────────────────────────────────────────────
+const AutoCommentsPreview = ({ comments, onExpand }) => {
+  if (!comments?.length) return null;
+  const first = comments[0];
+  return (
+    <button className="auto-comments-preview" onClick={onExpand} aria-label="Ver respostas das IAs">
+      <div className="auto-comment-avatars">
+        {comments.slice(0, 3).map((c, i) => (
+          <div
+            key={c.id}
+            className="auto-comment-mini-avatar"
+            style={{ '--agent-color': c.agent.color, zIndex: 3 - i, left: `${i * 14}px` }}
+          >
+            {c.agent.name.charAt(0)}
+          </div>
+        ))}
+      </div>
+      <div className="auto-comment-preview-text">
+        <span className="auto-comment-agent-name">{first.agent.name}</span>
+        <span className="auto-comment-snippet"> {first.text.slice(0, 60)}{first.text.length > 60 ? '…' : ''}</span>
+        {comments.length > 1 && (
+          <span className="auto-comment-more"> +{comments.length - 1} mais</span>
+        )}
+      </div>
+      <ChevronDown size={12} className="auto-comment-chevron" />
+    </button>
+  );
+};
+
+// ── CommentSection ────────────────────────────────────────────────────────────
+const CommentSection = ({ post, visible, autoComments }) => {
+  const [apiComments, setApiComments] = useState([]);
+  const [loading, setLoading]         = useState(false);
+  const [loaded, setLoaded]           = useState(false);
 
   const loadComments = useCallback(async () => {
     if (loaded || loading) return;
@@ -83,7 +164,7 @@ const CommentSection = ({ post, visible }) => {
         )
       );
 
-      const loaded_comments = results
+      const newComments = results
         .filter((r) => r.status === 'fulfilled' && r.value?.text)
         .map((r) => ({
           id: `${r.value.commenter.id}-${Date.now()}-${Math.random()}`,
@@ -94,7 +175,7 @@ const CommentSection = ({ post, visible }) => {
           timestamp: new Date(Date.now() - Math.random() * 300000).toISOString(),
         }));
 
-      setComments(loaded_comments);
+      setApiComments(newComments);
     } catch {
       // silently fail
     } finally {
@@ -109,6 +190,12 @@ const CommentSection = ({ post, visible }) => {
 
   if (!visible) return null;
 
+  // Merge auto-comments + api comments, deduplicated
+  const allComments = [
+    ...(autoComments || []),
+    ...apiComments.filter(ac => !(autoComments || []).some(a => a.agent?.id === ac.agent?.id)),
+  ];
+
   return (
     <div className="comment-section">
       {loading && (
@@ -118,11 +205,11 @@ const CommentSection = ({ post, visible }) => {
         </div>
       )}
 
-      {!loading && loaded && comments.length === 0 && (
+      {!loading && loaded && allComments.length === 0 && (
         <div className="comment-empty">nenhuma resposta ainda</div>
       )}
 
-      {comments.map((c) => (
+      {allComments.map((c) => (
         <div key={c.id} className="comment-item fade-in-up">
           <Link to={`/profile/${c.agent.handle.replace('@', '')}`}>
             <div className="comment-avatar" style={{ '--agent-color': c.agent.color }}>
@@ -143,7 +230,7 @@ const CommentSection = ({ post, visible }) => {
             <p className="comment-text">{renderText(c.text)}</p>
             <button
               className={`comment-like ${c.liked ? 'liked' : ''}`}
-              onClick={() => setComments((prev) =>
+              onClick={() => setApiComments((prev) =>
                 prev.map((x) => x.id === c.id
                   ? { ...x, liked: !x.liked, likes: x.liked ? x.likes - 1 : x.likes + 1 }
                   : x
@@ -161,11 +248,11 @@ const CommentSection = ({ post, visible }) => {
   );
 };
 
-// ── Tweet (Post card) ────────────────────────────────────────────────────────
+// ── Tweet (Post card) ─────────────────────────────────────────────────────────
 export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
   const {
     agent, text, hashtags, likes, reposts, replies, views,
-    timestamp, liked, reposted, bookmarked,
+    timestamp, liked, reposted, bookmarked, image, article, autoComments,
   } = post;
 
   const [showComments, setShowComments] = useState(false);
@@ -188,7 +275,7 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
     setTimeout(() => setSpinning(false), 450);
   };
 
-  const handleLike = (e) => {
+  const handleLike = () => {
     onLike(post.id);
     if (!liked) {
       setBursting(true);
@@ -228,7 +315,6 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
             {agent.name.charAt(0)}
           </Link>
 
-          {/* Hover profile card */}
           {showHoverCard && (
             <div className="avatar-hover-card">
               <div className="hover-card-avatar" style={{ '--agent-color': agent.color }}>
@@ -236,12 +322,8 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
               </div>
               <div className="hover-card-name">{agent.name}</div>
               <div className="hover-card-handle">{agent.handle}</div>
-              {agent.bio && (
-                <div className="hover-card-bio">{agent.bio}</div>
-              )}
-              {agent.specialty && (
-                <div className="hover-card-specialty">{agent.specialty}</div>
-              )}
+              {agent.bio && <div className="hover-card-bio">{agent.bio}</div>}
+              {agent.specialty && <div className="hover-card-specialty">{agent.specialty}</div>}
             </div>
           )}
         </div>
@@ -272,7 +354,21 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
               ))}
             </div>
           )}
+
+          {/* Image */}
+          {image && <PostImage image={image} />}
+
+          {/* Article card */}
+          {article && !image && <ArticleCard article={article} />}
         </div>
+
+        {/* Auto-comments preview (only when comments not expanded) */}
+        {!showComments && autoComments?.length > 0 && (
+          <AutoCommentsPreview
+            comments={autoComments}
+            onExpand={() => setShowComments(true)}
+          />
+        )}
 
         {/* Actions */}
         <div className="tweet-actions" role="group" aria-label="Ações do post">
@@ -331,14 +427,18 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
           </button>
         </div>
 
-        {/* Comments */}
-        <CommentSection post={post} visible={showComments} />
+        {/* Comments section (expanded) */}
+        <CommentSection
+          post={post}
+          visible={showComments}
+          autoComments={autoComments}
+        />
       </div>
     </article>
   );
 };
 
-// ── Skeleton Tweet ─────────────────────────────────────────────────────────
+// ── Skeleton Tweet ─────────────────────────────────────────────────────────────
 export const SkeletonTweet = () => (
   <div className="skeleton-tweet" aria-hidden="true">
     <div className="skeleton skeleton-avatar" />
@@ -351,20 +451,18 @@ export const SkeletonTweet = () => (
   </div>
 );
 
-// ── ComposeBox — Nova Convo ─────────────────────────────────────────────────
+// ── ComposeBox ─────────────────────────────────────────────────────────────────
 export const ComposeBox = ({ onPost }) => {
   const [value, setValue]   = useState('');
   const [aiOn, setAiOn]     = useState(false);
-  const maxLen   = 280;
-  const used     = value.length;
+  const maxLen    = 280;
+  const used      = value.length;
   const remaining = maxLen - used;
-  const over     = remaining < 0;
-  const near     = remaining <= 20 && !over;
-
-  // Circular progress
-  const R = 11;
-  const CIRC = 2 * Math.PI * R;
-  const progress = Math.min(used / maxLen, 1);
+  const over      = remaining < 0;
+  const near      = remaining <= 20 && !over;
+  const R         = 11;
+  const CIRC      = 2 * Math.PI * R;
+  const progress  = Math.min(used / maxLen, 1);
   const dashOffset = CIRC * (1 - progress);
 
   return (
@@ -403,10 +501,7 @@ export const ComposeBox = ({ onPost }) => {
             {used > 0 && (
               <div className="char-counter" aria-label={`${remaining} caracteres restantes`}>
                 <svg width="28" height="28" viewBox="0 0 28 28">
-                  <circle
-                    className="char-counter-track"
-                    cx="14" cy="14" r={R}
-                  />
+                  <circle className="char-counter-track" cx="14" cy="14" r={R} />
                   <circle
                     className={`char-counter-fill ${near ? 'near' : ''} ${over ? 'over' : ''}`}
                     cx="14" cy="14" r={R}
@@ -436,7 +531,7 @@ export const ComposeBox = ({ onPost }) => {
   );
 };
 
-// ── TrendingItem ──────────────────────────────────────────────────────────
+// ── TrendingItem ───────────────────────────────────────────────────────────────
 export const TrendingItem = ({ tag, posts, hot, index }) => (
   <div className="trending-item" role="button" tabIndex={0}>
     <div className="trending-meta">
@@ -448,13 +543,10 @@ export const TrendingItem = ({ tag, posts, hot, index }) => (
   </div>
 );
 
-// ── WhoToFollow ──────────────────────────────────────────────────────────
+// ── WhoToFollow ────────────────────────────────────────────────────────────────
 export const WhoToFollow = ({ agent }) => (
   <div className="who-to-follow-item">
-    <Link
-      to={`/profile/${agent.handle.replace('@', '')}`}
-      aria-label={`Ver perfil de ${agent.name}`}
-    >
+    <Link to={`/profile/${agent.handle.replace('@', '')}`} aria-label={`Ver perfil de ${agent.name}`}>
       <div className="wtf-avatar" style={{ '--agent-color': agent.color }}>
         {agent.name.charAt(0)}
       </div>
@@ -467,9 +559,7 @@ export const WhoToFollow = ({ agent }) => (
         {agent.verified && <BadgeCheck size={12} className="verified-badge-sm" />}
       </div>
       <span className="wtf-handle">{agent.handle}</span>
-      {agent.specialty && (
-        <span className="wtf-specialty">{agent.specialty}</span>
-      )}
+      {agent.specialty && <span className="wtf-specialty">{agent.specialty}</span>}
     </div>
     <Link
       to={`/profile/${agent.handle.replace('@', '')}`}
