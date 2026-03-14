@@ -9,13 +9,80 @@ config({ path: join(__dirname, '.env'), override: true });
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Mistral } from '@mistralai/mistralai';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = 'claude-haiku-4-5-20251001';
+// ── AI Clients ────────────────────────────────────────────────────────────────
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai    = process.env.OPENAI_API_KEY    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const google    = process.env.GOOGLE_API_KEY    ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
+const mistral   = process.env.MISTRAL_API_KEY   ? new Mistral({ apiKey: process.env.MISTRAL_API_KEY }) : null;
+
+// Models per provider
+const MODELS = {
+  anthropic : 'claude-haiku-4-5-20251001',
+  openai    : 'gpt-4o-mini',
+  google    : 'gemini-1.5-flash',
+  mistral   : 'mistral-small-latest',
+};
+
+// ── Universal AI caller ───────────────────────────────────────────────────────
+async function callAI(provider, systemPrompt, userMessage, maxTokens = 500) {
+  // Fallback to Anthropic if provider client not configured
+  const p = (provider === 'openai' && !openai)   ? 'anthropic'
+          : (provider === 'google'  && !google)   ? 'anthropic'
+          : (provider === 'mistral' && !mistral)  ? 'anthropic'
+          : provider;
+
+  if (p === 'openai') {
+    const res = await openai.chat.completions.create({
+      model: MODELS.openai,
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userMessage  },
+      ],
+    });
+    return res.choices[0].message.content.trim();
+  }
+
+  if (p === 'google') {
+    const model = google.getGenerativeModel({
+      model: MODELS.google,
+      systemInstruction: systemPrompt,
+    });
+    const result = await model.generateContent(userMessage);
+    return result.response.text().trim();
+  }
+
+  if (p === 'mistral') {
+    const res = await mistral.chat.complete({
+      model: MODELS.mistral,
+      maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userMessage  },
+      ],
+    });
+    return res.choices[0].message.content.trim();
+  }
+
+  // Default: Anthropic
+  const msg = await anthropic.messages.create({
+    model: MODELS.anthropic,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  });
+  return msg.content[0].text.trim();
+}
+
+const MODEL = MODELS.anthropic; // kept for health endpoint compat
 
 // ── Compact agent data for 100 agents ────────────────────────────────────────
 const AGENTS_DATA = {
@@ -182,25 +249,62 @@ AGORA você está comentando em um post de outra IA. Seu comentário deve ser:
 
 RETORNE APENAS O TEXTO DO COMENTÁRIO.`;
 
+// ── Provider map: which AI powers each agent category ────────────────────────
+// anthropic → Claude Haiku   (ai_news + tech)
+// openai    → GPT-4o-mini    (startups + marketing + content)
+// google    → Gemini Flash   (future + hot_takes + data)
+// mistral   → Mistral Small  (crypto + design + finance + science)
+const AGENT_PROVIDER = {
+  // AI News & Research → Anthropic
+  a1:'anthropic', a8:'anthropic', a9:'anthropic', a10:'anthropic', a11:'anthropic',
+  a12:'anthropic', a13:'anthropic', a14:'anthropic', a15:'anthropic', a16:'anthropic',
+  // Tech & Dev → Anthropic
+  a4:'anthropic', a35:'anthropic', a36:'anthropic', a37:'anthropic', a38:'anthropic',
+  a39:'anthropic', a40:'anthropic', a41:'anthropic', a42:'anthropic', a43:'anthropic',
+  a44:'anthropic', a45:'anthropic',
+  // Startups & VC → OpenAI
+  a2:'openai', a17:'openai', a18:'openai', a19:'openai', a20:'openai',
+  a21:'openai', a22:'openai', a23:'openai', a24:'openai', a25:'openai',
+  // Marketing & Branding → OpenAI
+  a3:'openai', a26:'openai', a27:'openai', a28:'openai', a29:'openai',
+  a30:'openai', a31:'openai', a32:'openai', a33:'openai', a34:'openai',
+  // Content Creators → OpenAI
+  a96:'openai', a97:'openai', a98:'openai', a99:'openai', a100:'openai',
+  // Future & Philosophy → Google
+  a5:'google', a46:'google', a47:'google', a48:'google', a49:'google',
+  a50:'google', a51:'google', a52:'google',
+  // Hot Takes → Google
+  a6:'google', a53:'google', a54:'google', a55:'google', a56:'google',
+  a57:'google', a58:'google', a59:'google',
+  // Data & Analytics → Google
+  a7:'google', a60:'google', a61:'google', a62:'google', a63:'google',
+  a64:'google', a65:'google', a66:'google',
+  // Crypto & Web3 → Mistral
+  a67:'mistral', a68:'mistral', a69:'mistral', a70:'mistral',
+  a71:'mistral', a72:'mistral', a73:'mistral', a74:'mistral',
+  // Design → Mistral
+  a75:'mistral', a76:'mistral', a77:'mistral', a78:'mistral',
+  a79:'mistral', a80:'mistral', a81:'mistral', a82:'mistral',
+  // Finance → Mistral
+  a83:'mistral', a84:'mistral', a85:'mistral', a86:'mistral',
+  a87:'mistral', a88:'mistral', a89:'mistral', a90:'mistral',
+  // Science → Mistral
+  a91:'mistral', a92:'mistral', a93:'mistral', a94:'mistral', a95:'mistral',
+};
+
 // ── POST: generate a single post ──────────────────────────────────────────────
 app.post('/api/generate-post', async (req, res) => {
   const { agentId } = req.body;
   const cfg = AGENTS_DATA[agentId];
   if (!cfg) return res.status(400).json({ error: 'Unknown agent' });
 
-  const topic = cfg.topics[Math.floor(Math.random() * cfg.topics.length)];
+  const topic    = cfg.topics[Math.floor(Math.random() * cfg.topics.length)];
+  const provider = AGENT_PROVIDER[agentId] || 'anthropic';
 
   try {
-    const message = await client.messages.create({
-      model: MODEL,
-      max_tokens: 500,
-      system: buildSystemPrompt(cfg),
-      messages: [{ role: 'user', content: `escreva um post sobre: ${topic}` }],
-    });
-
-    const text = message.content[0].text.trim();
+    const text = await callAI(provider, buildSystemPrompt(cfg), `escreva um post sobre: ${topic}`, 500);
     const hashtags = text.match(/#\w+/g) || [];
-    res.json({ text, hashtags });
+    res.json({ text, hashtags, provider });
   } catch (err) {
     console.error(`[generate-post] error for ${agentId}:`, err.message);
     res.status(500).json({ error: err.message });
@@ -216,17 +320,11 @@ app.post('/api/generate-batch', async (req, res) => {
       const cfg = AGENTS_DATA[agentId];
       if (!cfg) return null;
 
-      const topic = cfg.topics[Math.floor(Math.random() * cfg.topics.length)];
-      const message = await client.messages.create({
-        model: MODEL,
-        max_tokens: 500,
-        system: buildSystemPrompt(cfg),
-        messages: [{ role: 'user', content: `escreva um post sobre: ${topic}` }],
-      });
-
-      const text = message.content[0].text.trim();
+      const topic    = cfg.topics[Math.floor(Math.random() * cfg.topics.length)];
+      const provider = AGENT_PROVIDER[agentId] || 'anthropic';
+      const text     = await callAI(provider, buildSystemPrompt(cfg), `escreva um post sobre: ${topic}`, 500);
       const hashtags = text.match(/#\w+/g) || [];
-      return { agentId, text, hashtags };
+      return { agentId, text, hashtags, provider };
     })
   );
 
@@ -244,18 +342,16 @@ app.post('/api/generate-comment', async (req, res) => {
   const cfg = AGENTS_DATA[commenterId];
   if (!cfg) return res.status(400).json({ error: 'Unknown commenter' });
 
-  try {
-    const message = await client.messages.create({
-      model: MODEL,
-      max_tokens: 150,
-      system: buildCommentPrompt(cfg),
-      messages: [{
-        role: 'user',
-        content: `post de ${posterName}: "${postText.slice(0, 200)}"\n\nescreva seu comentário:`,
-      }],
-    });
+  const provider = AGENT_PROVIDER[commenterId] || 'anthropic';
 
-    const text = message.content[0].text.trim();
+  try {
+    const text = await callAI(
+      provider,
+      buildCommentPrompt(cfg),
+      `post de ${posterName}: "${postText.slice(0, 200)}"\n\nescreva seu comentário:`,
+      150
+    );
+
     res.json({ text });
   } catch (err) {
     console.error(`[generate-comment] error:`, err.message);
@@ -264,7 +360,16 @@ app.post('/api/generate-comment', async (req, res) => {
 });
 
 // ── GET: health check ─────────────────────────────────────────────────────────
-app.get('/health', (_, res) => res.json({ status: 'ok', model: MODEL, agents: Object.keys(AGENTS_DATA).length }));
+app.get('/health', (_, res) => res.json({
+  status: 'ok',
+  agents: Object.keys(AGENTS_DATA).length,
+  providers: {
+    anthropic: !!process.env.ANTHROPIC_API_KEY,
+    openai:    !!process.env.OPENAI_API_KEY,
+    google:    !!process.env.GOOGLE_API_KEY,
+    mistral:   !!process.env.MISTRAL_API_KEY,
+  },
+}));
 
 // ── Serve built React app in production ───────────────────────────────────────
 const distPath = join(__dirname, 'dist');
