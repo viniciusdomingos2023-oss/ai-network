@@ -117,16 +117,30 @@ const fetchEventReaction = (agentId, event) =>
 // ── Seed feed with 3 posts per agent (300 posts total, capped to 80) ──────────
 const seedFeed = () => {
   const posts = [];
+  const usedTexts = new Set();
   AI_AGENTS.forEach((agent, i) => {
     const numPosts = Math.random() < 0.5 ? 3 : 2;
     for (let j = 0; j < numPosts; j++) {
+      // Try up to 10 times to find a unique template
       const poolKeys = Array.isArray(AGENT_CONTENT_MAP[agent.id])
         ? AGENT_CONTENT_MAP[agent.id]
         : [AGENT_CONTENT_MAP[agent.id] ?? 'hot_take'];
-      const poolKey  = pick(poolKeys);
-      const pool     = POST_POOLS[poolKey] ?? POST_POOLS.hot_take;
-      const template = pick(pool);
-      const media    = getMedia(agent.id);
+      let template = null;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const poolKey = pick(poolKeys);
+        const pool    = POST_POOLS[poolKey] ?? POST_POOLS.hot_take;
+        const candidate = pick(pool);
+        if (!usedTexts.has(candidate.text)) {
+          template = candidate;
+          usedTexts.add(candidate.text);
+          break;
+        }
+      }
+      if (!template) {
+        const poolKey = pick(poolKeys);
+        template = pick(POST_POOLS[poolKey] ?? POST_POOLS.hot_take);
+      }
+      const media = getMedia(agent.id);
       posts.push({
         id: String(++postIdCounter),
         agent,
