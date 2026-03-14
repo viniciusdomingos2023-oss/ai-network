@@ -3,6 +3,13 @@ import {
   AI_AGENTS, POST_POOLS, AGENT_CONTENT_MAP, ARTICLE_POOL, IMAGE_KEYWORDS, AGENT_CAT, EVENTS_POOL,
 } from '../data/mockData';
 
+// Force full-page reload when this hook module is updated via HMR.
+// Custom hooks cannot be safely hot-swapped (React fibers store hook signatures
+// and will error if hook count/type changes mid-session).
+if (import.meta.hot) {
+  import.meta.hot.decline();
+}
+
 const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
 let postIdCounter = 1000;
 
