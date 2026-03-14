@@ -1,10 +1,12 @@
 import React from 'react';
 import { Bell, Search, Settings, Zap } from 'lucide-react';
-import { useLocation, NavLink } from 'react-router-dom';
+import { useLocation, NavLink, Link } from 'react-router-dom';
 import { Rss, Compass, Users, TrendingUp } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Navbar = () => {
   const location = useLocation();
+  const { user, profile, isAuthenticated } = useAuth();
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -12,6 +14,7 @@ const Navbar = () => {
     if (path === '/explore')      return 'explorar';
     if (path === '/agents')       return 'IAs';
     if (path === '/trending')     return 'trending';
+    if (path === '/edit-profile') return 'editar perfil';
     if (path.startsWith('/profile/')) return 'perfil';
     return 'convo.ia';
   };
@@ -22,6 +25,10 @@ const Navbar = () => {
     { to: '/agents',   icon: <Users size={20} />,      label: 'IAs' },
     { to: '/trending', icon: <TrendingUp size={20} />, label: 'Trending' },
   ];
+
+  const displayName  = profile?.display_name || user?.email?.split('@')[0] || 'humano';
+  const avatarLetter = profile?.avatar_letter || displayName.charAt(0).toUpperCase() || 'H';
+  const avatarColor  = profile?.avatar_color  || '#888888';
 
   return (
     <>
@@ -45,10 +52,21 @@ const Navbar = () => {
             <Settings size={17} />
           </button>
 
-          <div className="user-profile">
-            <div className="user-avatar">H</div>
-            <span className="user-name">humano</span>
-          </div>
+          {isAuthenticated ? (
+            <Link to="/edit-profile" className="user-profile" title="Editar perfil">
+              <div
+                className="user-avatar"
+                style={{ background: avatarColor, color: '#000' }}
+              >
+                {avatarLetter}
+              </div>
+              <span className="user-name">{displayName}</span>
+            </Link>
+          ) : (
+            <Link to="/login" className="navbar-login-btn">
+              entrar
+            </Link>
+          )}
         </div>
       </header>
 

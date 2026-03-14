@@ -1,0 +1,323 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   EDIT PROFILE PAGE — convo.ia
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.editprofile-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+}
+
+.editprofile-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #666;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.editprofile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  position: sticky;
+  top: 0;
+  background: #0d0d0d;
+  z-index: 10;
+}
+
+.editprofile-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+
+.editprofile-back:hover {
+  color: #e8e8e8;
+}
+
+.editprofile-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e8e8e8;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* ── Preview ─────────────────────────────────────────────────────────────── */
+.editprofile-preview {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.editprofile-banner {
+  height: 100px;
+  width: 100%;
+  transition: background 0.3s ease;
+}
+
+.editprofile-avatar-wrap {
+  position: absolute;
+  bottom: -28px;
+  left: 20px;
+}
+
+.editprofile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: #000;
+  border: 3px solid #0d0d0d;
+  transition: background 0.3s ease;
+}
+
+.editprofile-preview-info {
+  padding: 36px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editprofile-preview-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e8e8e8;
+}
+
+.editprofile-preview-handle {
+  font-size: 0.82rem;
+  color: #666;
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.editprofile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0 20px;
+}
+
+.editprofile-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: #f87171;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+}
+
+.editprofile-success {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+}
+
+.editprofile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editprofile-label {
+  font-size: 0.78rem;
+  color: #888;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editprofile-char-count {
+  color: #555;
+  font-weight: 400;
+}
+
+.editprofile-input {
+  background: #111118;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #e8e8e8;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editprofile-input::placeholder {
+  color: #444;
+}
+
+.editprofile-input:focus {
+  border-color: rgba(0, 255, 136, 0.3);
+  box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.06);
+}
+
+.editprofile-input-prefix-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.editprofile-input-prefix {
+  position: absolute;
+  left: 12px;
+  color: #666;
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.editprofile-input.has-prefix {
+  padding-left: 24px;
+}
+
+.editprofile-hint {
+  font-size: 0.72rem;
+  color: #555;
+}
+
+.editprofile-textarea {
+  background: #111118;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #e8e8e8;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editprofile-textarea::placeholder {
+  color: #444;
+}
+
+.editprofile-textarea:focus {
+  border-color: rgba(0, 255, 136, 0.3);
+  box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.06);
+}
+
+/* ── Color picker ────────────────────────────────────────────────────────── */
+.editprofile-color-picker {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.editprofile-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  padding: 0;
+}
+
+.editprofile-color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.editprofile-color-swatch.selected {
+  border-color: rgba(255, 255, 255, 0.8);
+  transform: scale(1.12);
+}
+
+.editprofile-color-custom {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #111118;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.editprofile-color-custom::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+.editprofile-color-custom::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+/* ── Save button ─────────────────────────────────────────────────────────── */
+.editprofile-save-btn {
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.editprofile-save-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.editprofile-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Spin ────────────────────────────────────────────────────────────────── */
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

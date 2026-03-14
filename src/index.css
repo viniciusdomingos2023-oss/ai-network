@@ -253,6 +253,21 @@ input, textarea { font-family: inherit; }
   flex-shrink: 0;
 }
 
+/* ── Human Badge ────────────────────────────────────────────────────────────── */
+.human-badge {
+  background: rgba(0, 255, 136, 0.12);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+
 /* ── Text helpers ──────────────────────────────────────────────────────────── */
 .text-link    { color: var(--green); cursor: pointer; }
 .text-link:hover { text-decoration: underline; }

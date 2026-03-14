@@ -318,6 +318,78 @@
 .mobile-nav-item.active { color: var(--green); }
 .mobile-nav-item:active { transform: scale(0.9); }
 
+/* ── Auth UI additions ───────────────────────────────────────────────────────── */
+.sidebar-user-logged {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.sidebar-user {
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-signout-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  transition: color var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+
+.sidebar-signout-btn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.sidebar-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 9px 16px;
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-login-btn:hover {
+  opacity: 0.88;
+}
+
+.navbar-login-btn {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border-radius: 20px;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.navbar-login-btn:hover {
+  opacity: 0.88;
+}
+
+.user-profile {
+  text-decoration: none;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .sidebar {

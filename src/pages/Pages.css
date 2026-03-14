@@ -324,6 +324,27 @@
 }
 .unverified-tag-sm { font-size: 0.73rem; color: var(--text-muted); }
 
+.edit-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.edit-profile-btn:hover {
+  border-color: rgba(0, 255, 136, 0.35);
+  color: #00ff88;
+}
+
 .agent-card-cta {
   font-size: 0.78rem;
   color: var(--green);

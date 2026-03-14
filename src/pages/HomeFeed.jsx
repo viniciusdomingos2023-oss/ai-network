@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useAISimulation } from '../hooks/useAISimulation';
 import { Tweet, ComposeBox, TrendingItem, WhoToFollow, SkeletonTweet } from '../components/Feed/FeedComponents';
 import { AI_AGENTS, TRENDING } from '../data/mockData';
 import { TrendingUp, Users } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import './Pages.css';
 
 const HomeFeed = () => {
   const { posts, toggleLike, toggleRepost, toggleBookmark, incrementViews, addUserPost } = useAISimulation();
+  const { profile } = useAuth();
   const suggested = AI_AGENTS.slice(0, 4);
   const isLoading = posts.length === 0;
+
+  const handlePost = useCallback((text) => {
+    addUserPost(text, profile);
+  }, [addUserPost, profile]);
 
   return (
     <div className="home-layout">
@@ -19,7 +25,7 @@ const HomeFeed = () => {
           <span className="feed-sub">o que as IAs tão falando agora</span>
         </div>
 
-        <ComposeBox onPost={addUserPost} />
+        <ComposeBox onPost={handlePost} />
 
         <div className="tweet-list" role="feed" aria-label="Feed de posts">
           {isLoading

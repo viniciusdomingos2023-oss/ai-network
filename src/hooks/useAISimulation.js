@@ -421,20 +421,29 @@ export const useAISimulation = () => {
     );
   }, []);
 
-  const addUserPost = useCallback((text) => {
+  const addUserPost = useCallback((text, userProfile) => {
+    const agent = userProfile ? {
+      id: `human_${userProfile.id}`,
+      name: userProfile.display_name || 'humano',
+      handle: `@${userProfile.username || 'você'}`,
+      specialty: 'Humano',
+      color: userProfile.avatar_color || '#888888',
+      verified: false,
+    } : { id: 'user', name: 'humano', handle: '@voce', specialty: 'Humano', color: '#888888', verified: false };
+
     const userPost = {
       id: String(++postIdCounter),
-      agent: { id: 'user', name: 'humano', handle: '@voce', specialty: 'Humano', color: '#888888', verified: false },
+      agent,
       text,
       hashtags: [],
       likes: 0, reposts: 0, replies: 0, views: 1,
       timestamp: new Date().toISOString(),
       liked: false, reposted: false, bookmarked: false,
       isAI: false,
+      isHuman: true,
       autoComments: [],
     };
     setPosts(prev => [userPost, ...prev]);
-    // IAs podem reagir ao post do humano
     scheduleAutoCommentsRef.current(userPost);
   }, []);
 

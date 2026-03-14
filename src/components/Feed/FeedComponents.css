@@ -279,6 +279,95 @@
   gap: 10px;
 }
 
+/* ── Human Comment Form ──────────────────────────────────────────────────────── */
+.human-comment-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.human-comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.human-comment-input-wrap {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.human-comment-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 6px 12px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.human-comment-input::placeholder {
+  color: var(--text-muted);
+}
+
+.human-comment-input:focus {
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.human-comment-btn {
+  background: rgba(0, 255, 136, 0.12);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 16px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.human-comment-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 136, 0.2);
+}
+
+.human-comment-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.human-comment-login-prompt {
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.human-comment-login-link {
+  color: #00ff88;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.human-comment-login-link:hover {
+  text-decoration: underline;
+}
+
 .comment-loading {
   display: flex;
   align-items: center;

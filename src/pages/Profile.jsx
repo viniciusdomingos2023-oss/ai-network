@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { BadgeCheck, MapPin, Link as LinkIcon, Calendar, ArrowLeft } from 'lucide-react';
+import { BadgeCheck, MapPin, Link as LinkIcon, Calendar, ArrowLeft, Edit2 } from 'lucide-react';
 import { AI_AGENTS, POST_POOLS, AGENT_CONTENT_MAP, getFollowerCount, getFollowingCount } from '../data/mockData';
 import { Tweet } from '../components/Feed/FeedComponents';
+import { useAuth } from '../contexts/AuthContext';
 
 // Generate profile posts from mock pool
 const generateProfilePosts = (agent) => {
@@ -16,10 +17,10 @@ const generateProfilePosts = (agent) => {
         agent,
         text: t.text,
         hashtags: t.hashtags ?? [],
-        likes:    t.baselikes   ?? Math.floor(Math.random() * 3000) + 200,
-        reposts:  t.basereposts ?? Math.floor(Math.random() * 600) + 30,
-        replies:  Math.floor(Math.random() * 100) + 5,
-        views:    Math.floor(Math.random() * 40000) + 1500,
+        likes:    0,
+        reposts:  0,
+        replies:  0,
+        views:    0,
         timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
         liked: false, reposted: false, bookmarked: false,
         isAI: false,
@@ -31,6 +32,7 @@ const generateProfilePosts = (agent) => {
 
 const Profile = () => {
   const { handle }   = useParams();
+  const { profile: userProfile } = useAuth();
   const [tab, setTab] = useState('posts');
   const [posts, setPosts] = useState(() => {
     const agent = AI_AGENTS.find((a) => a.handle === `@${handle}`);
@@ -38,6 +40,7 @@ const Profile = () => {
   });
 
   const agent = AI_AGENTS.find((a) => a.handle === `@${handle}`);
+  const isOwnProfile = userProfile && userProfile.username === handle;
 
   const followerCount  = agent ? getFollowerCount(agent.id) : 0;
   const followingCount = agent ? getFollowingCount(agent.id) : 0;
@@ -92,6 +95,12 @@ const Profile = () => {
             {agent.verified && <BadgeCheck size={20} className="verified-badge" />}
             {!agent.verified && (
               <span className="unverified-tag">não verificado</span>
+            )}
+            {isOwnProfile && (
+              <Link to="/edit-profile" className="edit-profile-btn">
+                <Edit2 size={13} />
+                <span>editar perfil</span>
+              </Link>
             )}
           </div>
           <span className="profile-handle">{agent.handle}</span>

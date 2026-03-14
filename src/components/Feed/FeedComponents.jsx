@@ -6,6 +6,7 @@ import {
   ExternalLink, ChevronDown,
 } from 'lucide-react';
 import { AI_AGENTS } from '../../data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
 import './FeedComponents.css';
 
 const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
@@ -134,9 +135,12 @@ const AutoCommentsPreview = ({ comments, onExpand }) => {
 
 // ── CommentSection ────────────────────────────────────────────────────────────
 const CommentSection = ({ post, visible, autoComments }) => {
-  const [apiComments, setApiComments] = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [loaded, setLoaded]           = useState(false);
+  const { user, profile, isAuthenticated } = useAuth();
+  const [apiComments, setApiComments]  = useState([]);
+  const [humanComments, setHumanComments] = useState([]);
+  const [humanInput, setHumanInput]    = useState('');
+  const [loading, setLoading]          = useState(false);
+  const [loaded, setLoaded]            = useState(false);
 
   const loadComments = useCallback(async () => {
     if (loaded || loading) return;
@@ -188,16 +192,108 @@ const CommentSection = ({ post, visible, autoComments }) => {
     if (visible) loadComments();
   }, [visible, loadComments]);
 
+  const handleHumanComment = () => {
+    if (!humanInput.trim()) return;
+    const displayName  = profile?.display_name || user?.email?.split('@')[0] || 'humano';
+    const username     = profile?.username || 'você';
+    const avatarLetter = profile?.avatar_letter || displayName.charAt(0).toUpperCase();
+    const avatarColor  = profile?.avatar_color  || '#888888';
+
+    const newComment = {
+      id: `human-${Date.now()}`,
+      agent: {
+        id: `human_${user?.id || 'guest'}`,
+        name: displayName,
+        handle: `@${username}`,
+        color: avatarColor,
+        verified: false,
+      },
+      text: humanInput.trim(),
+      likes: 0,
+      liked: false,
+      timestamp: new Date().toISOString(),
+      isHuman: true,
+    };
+    setHumanComments((prev) => [...prev, newComment]);
+    setHumanInput('');
+  };
+
   if (!visible) return null;
 
   // Merge auto-comments + api comments, deduplicated
-  const allComments = [
+  const allAIComments = [
     ...(autoComments || []),
     ...apiComments.filter(ac => !(autoComments || []).some(a => a.agent?.id === ac.agent?.id)),
   ];
 
   return (
     <div className="comment-section">
+      {/* Human comment form */}
+      {isAuthenticated ? (
+        <div className="human-comment-form">
+          <div
+            className="human-comment-avatar"
+            style={{ background: profile?.avatar_color || '#888888', color: '#000' }}
+          >
+            {(profile?.avatar_letter || (profile?.display_name || 'H').charAt(0)).toUpperCase()}
+          </div>
+          <div className="human-comment-input-wrap">
+            <input
+              type="text"
+              className="human-comment-input"
+              placeholder="escreva um comentário…"
+              value={humanInput}
+              onChange={(e) => setHumanInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleHumanComment(); } }}
+              maxLength={280}
+            />
+            <button
+              className="human-comment-btn"
+              onClick={handleHumanComment}
+              disabled={!humanInput.trim()}
+            >
+              comentar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="human-comment-login-prompt">
+          <Link to="/login" className="human-comment-login-link">entre para comentar</Link>
+        </div>
+      )}
+
+      {/* Human comments */}
+      {humanComments.map((c) => (
+        <div key={c.id} className="comment-item fade-in-up">
+          <div className="comment-avatar" style={{ '--agent-color': c.agent.color }}>
+            {c.agent.name.charAt(0)}
+          </div>
+          <div className="comment-body">
+            <div className="comment-header">
+              <span className="comment-name">{c.agent.name}</span>
+              <span className="human-badge">humano</span>
+              <span className="comment-handle">{c.agent.handle}</span>
+              <span className="comment-dot">·</span>
+              <span className="comment-time">{timeAgo(c.timestamp)}</span>
+            </div>
+            <p className="comment-text">{renderText(c.text)}</p>
+            <button
+              className={`comment-like ${c.liked ? 'liked' : ''}`}
+              onClick={() => setHumanComments((prev) =>
+                prev.map((x) => x.id === c.id
+                  ? { ...x, liked: !x.liked, likes: x.liked ? x.likes - 1 : x.likes + 1 }
+                  : x
+                )
+              )}
+              aria-label="curtir comentário"
+            >
+              <Heart size={11} fill={c.liked ? 'currentColor' : 'none'} />
+              <span>{c.likes}</span>
+            </button>
+          </div>
+        </div>
+      ))}
+
       {loading && (
         <div className="comment-loading">
           <Loader2 size={14} className="spin" />
@@ -205,11 +301,11 @@ const CommentSection = ({ post, visible, autoComments }) => {
         </div>
       )}
 
-      {!loading && loaded && allComments.length === 0 && (
+      {!loading && loaded && allAIComments.length === 0 && humanComments.length === 0 && (
         <div className="comment-empty">nenhuma resposta ainda</div>
       )}
 
-      {allComments.map((c) => (
+      {allAIComments.map((c) => (
         <div key={c.id} className="comment-item fade-in-up">
           <Link to={`/profile/${c.agent.handle.replace('@', '')}`}>
             <div className="comment-avatar" style={{ '--agent-color': c.agent.color }}>
@@ -253,7 +349,7 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark, onView }) => {
   const {
     agent, text, hashtags, likes, reposts, replies, views,
     timestamp, liked, reposted, bookmarked, image, article, autoComments,
-    eventReaction, eventTitle,
+    eventReaction, eventTitle, isHuman,
   } = post;
 
   const [showComments, setShowComments] = useState(false);
@@ -360,7 +456,10 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark, onView }) => {
             {agent.name}
           </Link>
           {agent.verified && <BadgeCheck size={13} className="verified-badge" />}
-          <span className="ia-badge">IA</span>
+          {isHuman
+            ? <span className="human-badge">humano</span>
+            : <span className="ia-badge">IA</span>
+          }
           <span className="tweet-handle">{agent.handle}</span>
           <span className="tweet-dot">·</span>
           <span className="tweet-time">{timeAgo(timestamp)}</span>
@@ -487,6 +586,7 @@ export const SkeletonTweet = () => (
 
 // ── ComposeBox ─────────────────────────────────────────────────────────────────
 export const ComposeBox = ({ onPost }) => {
+  const { profile, isAuthenticated } = useAuth();
   const [value, setValue]   = useState('');
   const [aiOn, setAiOn]     = useState(false);
   const maxLen    = 280;
@@ -499,9 +599,20 @@ export const ComposeBox = ({ onPost }) => {
   const progress  = Math.min(used / maxLen, 1);
   const dashOffset = CIRC * (1 - progress);
 
+  const composeAvatarLetter = isAuthenticated
+    ? (profile?.avatar_letter || (profile?.display_name || 'H').charAt(0).toUpperCase())
+    : 'H';
+  const composeAvatarColor = isAuthenticated ? (profile?.avatar_color || '#888888') : '#888888';
+
   return (
     <div className="compose-box" role="form" aria-label="Nova Convo">
-      <div className="compose-avatar" aria-hidden="true">H</div>
+      <div
+        className="compose-avatar"
+        aria-hidden="true"
+        style={isAuthenticated ? { background: composeAvatarColor, color: '#000' } : {}}
+      >
+        {composeAvatarLetter}
+      </div>
       <div className="compose-right">
         <textarea
           className="compose-textarea"
