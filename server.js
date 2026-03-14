@@ -19,9 +19,14 @@ app.use(express.json());
 
 // ── AI Clients ────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const openai    = process.env.OPENAI_API_KEY    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
-const google    = process.env.GOOGLE_API_KEY    ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
-const mistral   = process.env.MISTRAL_API_KEY   ? new Mistral({ apiKey: process.env.MISTRAL_API_KEY }) : null;
+const openai    = process.env.OPENAI_API_KEY  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const google    = process.env.GOOGLE_API_KEY  ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
+const mistral   = process.env.MISTRAL_API_KEY ? new Mistral({ apiKey: process.env.MISTRAL_API_KEY }) : null;
+// Grok usa o mesmo SDK do OpenAI, só muda a baseURL
+const grok      = process.env.GROK_API_KEY    ? new OpenAI({
+  apiKey  : process.env.GROK_API_KEY,
+  baseURL : 'https://api.x.ai/v1',
+}) : null;
 
 // Models per provider
 const MODELS = {
@@ -29,21 +34,35 @@ const MODELS = {
   openai    : 'gpt-4o-mini',
   google    : 'gemini-1.5-flash',
   mistral   : 'mistral-small-latest',
+  grok      : 'grok-3-mini',
 };
 
 // ── Universal AI caller ───────────────────────────────────────────────────────
 async function callAI(provider, systemPrompt, userMessage, maxTokens = 500) {
-  // Fallback to Anthropic if provider client not configured
-  const p = (provider === 'openai' && !openai)   ? 'anthropic'
-          : (provider === 'google'  && !google)   ? 'anthropic'
-          : (provider === 'mistral' && !mistral)  ? 'anthropic'
+  // Fallback to Anthropic if provider key not configured
+  const p = (provider === 'openai'  && !openai)  ? 'anthropic'
+          : (provider === 'google'  && !google)  ? 'anthropic'
+          : (provider === 'mistral' && !mistral) ? 'anthropic'
+          : (provider === 'grok'    && !grok)    ? 'anthropic'
           : provider;
 
   if (p === 'openai') {
     const res = await openai.chat.completions.create({
-      model: MODELS.openai,
+      model     : MODELS.openai,
       max_tokens: maxTokens,
-      messages: [
+      messages  : [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userMessage  },
+      ],
+    });
+    return res.choices[0].message.content.trim();
+  }
+
+  if (p === 'grok') {
+    const res = await grok.chat.completions.create({
+      model     : MODELS.grok,
+      max_tokens: maxTokens,
+      messages  : [
         { role: 'system', content: systemPrompt },
         { role: 'user',   content: userMessage  },
       ],
@@ -53,7 +72,7 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 500) {
 
   if (p === 'google') {
     const model = google.getGenerativeModel({
-      model: MODELS.google,
+      model            : MODELS.google,
       systemInstruction: systemPrompt,
     });
     const result = await model.generateContent(userMessage);
@@ -62,9 +81,9 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 500) {
 
   if (p === 'mistral') {
     const res = await mistral.chat.complete({
-      model: MODELS.mistral,
+      model    : MODELS.mistral,
       maxTokens,
-      messages: [
+      messages : [
         { role: 'system', content: systemPrompt },
         { role: 'user',   content: userMessage  },
       ],
@@ -74,10 +93,10 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 500) {
 
   // Default: Anthropic
   const msg = await anthropic.messages.create({
-    model: MODELS.anthropic,
+    model     : MODELS.anthropic,
     max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
+    system    : systemPrompt,
+    messages  : [{ role: 'user', content: userMessage }],
   });
   return msg.content[0].text.trim();
 }
@@ -252,8 +271,9 @@ RETORNE APENAS O TEXTO DO COMENTÁRIO.`;
 // ── Provider map: which AI powers each agent category ────────────────────────
 // anthropic → Claude Haiku   (ai_news + tech)
 // openai    → GPT-4o-mini    (startups + marketing + content)
-// google    → Gemini Flash   (future + hot_takes + data)
+// google    → Gemini Flash   (future + data)
 // mistral   → Mistral Small  (crypto + design + finance + science)
+// grok      → Grok-3-mini    (hot_takes) ← edgy, irreverente, perfeito pro grok
 const AGENT_PROVIDER = {
   // AI News & Research → Anthropic
   a1:'anthropic', a8:'anthropic', a9:'anthropic', a10:'anthropic', a11:'anthropic',
@@ -273,9 +293,9 @@ const AGENT_PROVIDER = {
   // Future & Philosophy → Google
   a5:'google', a46:'google', a47:'google', a48:'google', a49:'google',
   a50:'google', a51:'google', a52:'google',
-  // Hot Takes → Google
-  a6:'google', a53:'google', a54:'google', a55:'google', a56:'google',
-  a57:'google', a58:'google', a59:'google',
+  // Hot Takes → Grok (personalidade do grok = hot takes puras)
+  a6:'grok', a53:'grok', a54:'grok', a55:'grok', a56:'grok',
+  a57:'grok', a58:'grok', a59:'grok',
   // Data & Analytics → Google
   a7:'google', a60:'google', a61:'google', a62:'google', a63:'google',
   a64:'google', a65:'google', a66:'google',
@@ -368,6 +388,7 @@ app.get('/health', (_, res) => res.json({
     openai:    !!process.env.OPENAI_API_KEY,
     google:    !!process.env.GOOGLE_API_KEY,
     mistral:   !!process.env.MISTRAL_API_KEY,
+    grok:      !!process.env.GROK_API_KEY,
   },
 }));
 
