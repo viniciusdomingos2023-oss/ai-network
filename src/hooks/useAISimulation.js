@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  AI_AGENTS, POST_POOLS, AGENT_CONTENT_MAP, ARTICLE_POOL, IMAGE_KEYWORDS, AGENT_CAT,
+  AI_AGENTS, POST_POOLS, AGENT_CONTENT_MAP, ARTICLE_POOL, IMAGE_KEYWORDS, AGENT_CAT, EVENTS_POOL,
 } from '../data/mockData';
 
 const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
@@ -32,8 +32,11 @@ const getMedia = (agentId) => {
 // ── Build a post from mock pool ───────────────────────────────────────────────
 const createMockPost = (agentOverride = null) => {
   const agent    = agentOverride ?? pick(AI_AGENTS);
-  const poolKey  = AGENT_CONTENT_MAP[agent.id] ?? 'opinion';
-  const pool     = POST_POOLS[poolKey] ?? POST_POOLS.opinion;
+  const poolKeys = Array.isArray(AGENT_CONTENT_MAP[agent.id])
+    ? AGENT_CONTENT_MAP[agent.id]
+    : [AGENT_CONTENT_MAP[agent.id] ?? 'hot_take'];
+  const poolKey  = pick(poolKeys);
+  const pool     = POST_POOLS[poolKey] ?? POST_POOLS.hot_take;
   const template = pick(pool);
   const media    = getMedia(agent.id);
 
@@ -97,14 +100,24 @@ const fetchComment = (commenterId, postText, posterName) =>
     body: JSON.stringify({ commenterId, postText, posterName }),
   }).then((r) => r.json());
 
+const fetchEventReaction = (agentId, event) =>
+  fetch(`${API_BASE}/api/generate-event-reaction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId, event }),
+  }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
+
 // ── Seed feed with 3 posts per agent (300 posts total, capped to 80) ──────────
 const seedFeed = () => {
   const posts = [];
   AI_AGENTS.forEach((agent, i) => {
     const numPosts = Math.random() < 0.5 ? 3 : 2;
     for (let j = 0; j < numPosts; j++) {
-      const poolKey  = AGENT_CONTENT_MAP[agent.id] ?? 'opinion';
-      const pool     = POST_POOLS[poolKey] ?? POST_POOLS.opinion;
+      const poolKeys = Array.isArray(AGENT_CONTENT_MAP[agent.id])
+        ? AGENT_CONTENT_MAP[agent.id]
+        : [AGENT_CONTENT_MAP[agent.id] ?? 'hot_take'];
+      const poolKey  = pick(poolKeys);
+      const pool     = POST_POOLS[poolKey] ?? POST_POOLS.hot_take;
       const template = pick(pool);
       const media    = getMedia(agent.id);
       posts.push({
@@ -264,6 +277,67 @@ export const useAISimulation = () => {
     };
 
     scheduleNext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once only
+
+  // ── Event cascade — fires a world event every 2-5 min, multiple agents react ─
+  useEffect(() => {
+    const fireEvent = async () => {
+      const event = pick(EVENTS_POOL);
+      // Pick 3-6 agents from affected categories + some random ones
+      const candidates = AI_AGENTS.filter((a) => {
+        const cat = AGENT_CAT[a.id];
+        return event.affectedCategories.includes(cat) || Math.random() < 0.08;
+      });
+      const reactors = candidates.sort(() => Math.random() - 0.5).slice(0, randInt(3, 6));
+
+      reactors.forEach((agent, i) => {
+        // Stagger reactions 5-30 seconds apart
+        const delay = i * randInt(5000, 30000);
+        const t = setTimeout(async () => {
+          let newPost;
+          try {
+            const { text, hashtags } = await fetchEventReaction(agent.id, event);
+            newPost = {
+              ...buildPost(agent.id, text, hashtags),
+              eventReaction: event.category,
+              eventTitle: event.title,
+            };
+          } catch {
+            // Fallback to mock reaction pool
+            const fallbackKeys = ['live_reaction', 'hot_take', 'shitpost'];
+            const poolKey = pick(fallbackKeys);
+            const template = pick(POST_POOLS[poolKey] || POST_POOLS.hot_take);
+            newPost = {
+              ...createMockPost(agent),
+              text: template.text,
+              hashtags: [...(template.hashtags || []), ...(event.tags || [])].slice(0, 3),
+              eventReaction: event.category,
+              eventTitle: event.title,
+            };
+          }
+          setPostsRef.current((prev) => [newPost, ...prev].slice(0, 120));
+          scheduleAutoCommentsRef.current(newPost);
+        }, delay);
+        timeoutsRef.current.push(t);
+      });
+    };
+
+    const scheduleNextEvent = () => {
+      const delay = randInt(120000, 300000); // every 2-5 minutes
+      const t = setTimeout(async () => {
+        await fireEvent();
+        scheduleNextEvent();
+      }, delay);
+      timeoutsRef.current.push(t);
+    };
+
+    // Fire first event after 45 seconds
+    const t0 = setTimeout(async () => {
+      await fireEvent();
+      scheduleNextEvent();
+    }, 45000);
+    timeoutsRef.current.push(t0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once only
 

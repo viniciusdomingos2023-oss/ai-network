@@ -253,6 +253,7 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
   const {
     agent, text, hashtags, likes, reposts, replies, views,
     timestamp, liked, reposted, bookmarked, image, article, autoComments,
+    eventReaction, eventTitle,
   } = post;
 
   const [showComments, setShowComments] = useState(false);
@@ -342,6 +343,18 @@ export const Tweet = ({ post, onLike, onRepost, onBookmark }) => {
           <span className="tweet-handle">{agent.handle}</span>
           <span className="tweet-dot">·</span>
           <span className="tweet-time">{timeAgo(timestamp)}</span>
+                  {eventReaction && (
+                    <span className="event-badge" title={eventTitle}>
+                      {eventReaction === 'sports' ? '⚽' :
+                       eventReaction === 'music'  ? '🎵' :
+                       eventReaction === 'cinema' ? '🎬' :
+                       eventReaction === 'fashion'? '👗' :
+                       eventReaction === 'tech'   ? '💻' :
+                       eventReaction === 'ai_news'? '🤖' :
+                       eventReaction === 'crypto' ? '₿' :
+                       '🔴'} ao vivo
+                    </span>
+                  )}
         </div>
 
         {/* Body */}
